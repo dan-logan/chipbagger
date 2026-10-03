@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chip Bagger</title>
+  <meta name="description" content="A potato chip bag collection: every bag, a leaderboard for collectability and curb appeal, and a map of where they were made.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥔</text></svg>">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo" href="#collection">
+        <span class="logo-mark" aria-hidden="true">🥔</span>
+        <span>Chip Bagger</span>
+      </a>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#collection" data-tab="collection">Collection</a>
+        <a href="#leaderboard" data-tab="leaderboard">Leaderboard</a>
+        <a href="#map" data-tab="map">Chip Map</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="stats" class="stats" aria-label="Collection stats"></section>
+
+    <!-- Collection -->
+    <section class="panel" data-panel="collection" hidden>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Search brand, flavor, notes…" aria-label="Search bags">
+        <select id="brand-filter" aria-label="Filter by brand"><option value="">All brands</option></select>
+        <select id="sort" aria-label="Sort">
+          <option value="added">Newest added</option>
+          <option value="brand">Brand A–Z</option>
+          <option value="collectability">Collectability</option>
+          <option value="curb">Curb appeal</option>
+        </select>
+      </div>
+      <p id="result-count" class="muted"></p>
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <!-- Leaderboard -->
+    <section class="panel" data-panel="leaderboard" hidden>
+      <div class="board-head">
+        <div>
+          <h1>Leaderboard</h1>
+          <p class="muted">Bags ranked on a 1–10 scale. Open any bag to see its scores.</p>
+        </div>
+        <div class="rate-controls">
+          <button id="rate-toggle" class="btn" type="button">Rate bags</button>
+          <button id="rate-export" class="btn btn-primary" type="button" hidden>Download bags.csv</button>
+        </div>
+      </div>
+      <p id="rate-help" class="notice" hidden>
+        Rating mode is on. Open a bag from the Collection or any list here and set its scores; they save in this browser.
+        When you're done, download <code>bags.csv</code> and commit it to <code>data/bags.csv</code> (or paste the two columns into the sheet).
+      </p>
+      <div class="boards">
+        <div class="board">
+          <h2>Collectability</h2>
+          <ol id="board-collectability" class="board-list"></ol>
+        </div>
+        <div class="board">
+          <h2>Curb Appeal</h2>
+          <ol id="board-curb" class="board-list"></ol>
+        </div>
+        <div class="board">
+          <h2>Overall</h2>
+          <ol id="board-overall" class="board-list"></ol>
+        </div>
+      </div>
+      <div class="board brand-board">
+        <h2>Top brands <span class="muted small">(average overall, 2+ rated bags)</span></h2>
+        <ol id="board-brands" class="board-list"></ol>
+      </div>
+    </section>
+
+    <!-- Map -->
+    <section class="panel" data-panel="map" hidden>
+      <h1>Chip Map</h1>
+      <p class="muted">Where the bags in the collection were made. Bigger dots mean more bags from that spot.</p>
+      <div id="chip-map" class="chip-map" role="region" aria-label="Map of chip origins"></div>
+      <div id="place-list" class="place-list"></div>
+    </section>
+  </main>
+
+  <dialog id="bag-dialog" class="bag-dialog">
+    <form method="dialog" class="dialog-close"><button aria-label="Close">×</button></form>
+    <div id="bag-detail"></div>
+  </dialog>
+
+  <footer class="site-footer wrap muted small">
+    Chip Bagger · a potato chip bag collection
+  </footer>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="js/csv.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
