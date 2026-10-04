@@ -30,6 +30,18 @@ service cloud.firestore {
         && d.active is bool;
     }
 
+    // Map locations added from /admin. Public read; admin-only writes, never deleted.
+    match /places/{placeId} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'country', 'lat', 'lng'])
+        && isText(request.resource.data.name, 100) && request.resource.data.name.size() > 0
+        && isText(request.resource.data.country, 100)
+        && request.resource.data.lat is number && request.resource.data.lat >= -90 && request.resource.data.lat <= 90
+        && request.resource.data.lng is number && request.resource.data.lng >= -180 && request.resource.data.lng <= 180;
+      allow delete: if false;
+    }
+
     match /bags/{bagId} {
       allow read: if resource.data.active == true || isAdmin();
       allow create, update: if isAdmin() && isValidBag(request.resource.data);

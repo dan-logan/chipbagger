@@ -99,6 +99,22 @@
           <select id="f-made-in"></select>
         </label>
 
+        <div id="new-place" class="new-place" hidden>
+          <label class="field">
+            <span>New location name</span>
+            <input id="np-name" type="text" maxlength="100" placeholder="e.g. Lancaster, Pennsylvania">
+          </label>
+          <label class="field">
+            <span>Country</span>
+            <input id="np-country" type="text" maxlength="100" placeholder="e.g. USA">
+          </label>
+          <div class="row">
+            <label class="field"><span>Latitude</span><input id="np-lat" type="number" step="any" inputmode="decimal"></label>
+            <label class="field"><span>Longitude</span><input id="np-lng" type="number" step="any" inputmode="decimal"></label>
+          </div>
+          <button type="button" id="np-lookup" class="btn">Look up coordinates</button>
+        </div>
+
         <fieldset class="ratings">
           <legend>Ratings</legend>
           <div class="rating" data-field="collectability">

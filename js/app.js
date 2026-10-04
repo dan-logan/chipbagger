@@ -75,6 +75,12 @@
     ]);
     state.places = origins.places || {};
     state.brands = origins.brands || {};
+    try {
+      const source = await import('./bags-source.js');
+      if (source.isConfigured) Object.assign(state.places, await source.fetchPlaces());
+    } catch (err) {
+      console.warn('Custom places not loaded', err);
+    }
     state.bags = rows.map(row => ({
       ...row,
       brand: row.brand || '',

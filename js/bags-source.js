@@ -3,6 +3,18 @@ import { SDK_URL, appConfig, isConfigured, useEmulators } from './firebase-confi
 
 export { isConfigured };
 
+// Locations added from /admin (the rest live in data/origins.json). Empty if the collection can't be read.
+export async function fetchPlaces() {
+  const [{ initializeApp }, fs] = await Promise.all([
+    import(`${SDK_URL}/firebase-app.js`),
+    import(`${SDK_URL}/firebase-firestore-lite.js`),
+  ]);
+  const db = fs.getFirestore(initializeApp(appConfig));
+  if (useEmulators) fs.connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  const snap = await fs.getDocs(fs.collection(db, 'places'));
+  return Object.fromEntries(snap.docs.map(d => [d.id, d.data()]));
+}
+
 export async function fetchBags() {
   const [{ initializeApp }, fs] = await Promise.all([
     import(`${SDK_URL}/firebase-app.js`),

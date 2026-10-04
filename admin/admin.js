@@ -21,6 +21,8 @@ const el = (tag, attrs = {}, ...children) => {
   return node;
 };
 
+const NEW_PLACE = '__new__';
+
 const state = {
   bags: [],
   places: {},
@@ -76,6 +78,12 @@ async function loadOrigins() {
     state.brands = origins.brands || {};
   } catch (err) {
     console.error('origins.json failed to load', err);
+  }
+  try {
+    const snap = await fb.fs.getDocs(fb.fs.collection(fb.db, 'places'));
+    snap.docs.forEach(d => { state.places[d.id] = d.data(); });
+  } catch (err) {
+    console.error('places failed to load', err);
   }
 }
 
@@ -144,8 +152,47 @@ function renderMadeIn() {
   const places = Object.entries(state.places).sort((a, b) => a[1].name.localeCompare(b[1].name));
   select.replaceChildren(
     el('option', { value: '' }, `Brand default (${def || 'unknown'})`),
-    ...places.map(([key, p]) => el('option', { value: key }, p.name)));
+    ...places.map(([key, p]) => el('option', { value: key }, p.name)),
+    el('option', { value: NEW_PLACE }, '+ Add new location…'));
   select.value = keep;
+  if (select.value !== keep) select.value = '';
+  $('#new-place').hidden = select.value !== NEW_PLACE;
+}
+
+const slugify = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+async function lookupPlace() {
+  const name = $('#np-name').value.trim();
+  if (!name) { flash('Enter a location name first.', true); return; }
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(name)}`;
+    const [hit] = await fetch(url).then(r => r.json());
+    if (!hit) { flash('No match found. Enter coordinates manually.', true); return; }
+    $('#np-lat').value = Number(hit.lat).toFixed(4);
+    $('#np-lng').value = Number(hit.lon).toFixed(4);
+    if (!$('#np-country').value.trim() && hit.address && hit.address.country) $('#np-country').value = hit.address.country;
+  } catch (err) {
+    flash('Lookup failed. Enter coordinates manually.', true);
+  }
+}
+
+// Creates places/{key} for a location typed into the form and returns its key.
+async function saveNewPlace() {
+  const name = $('#np-name').value.trim();
+  const country = $('#np-country').value.trim();
+  const lat = parseFloat($('#np-lat').value);
+  const lng = parseFloat($('#np-lng').value);
+  const key = slugify(name);
+  if (!name || !key) throw new Error('Enter a name for the new location.');
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+    throw new Error('Enter valid coordinates for the new location, or use Look up coordinates.');
+  }
+  if (!state.places[key]) {
+    const place = { name, country, lat, lng };
+    await fb.fs.setDoc(fb.fs.doc(fb.db, 'places', key), place);
+    state.places[key] = place;
+  }
+  return key;
 }
 
 function openEditor(bag) {
@@ -161,6 +208,8 @@ function openEditor(bag) {
   $('#f-notes').value = bag ? bag.notes || '' : '';
   renderMadeIn();
   $('#f-made-in').value = bag && bag.made_in && state.places[bag.made_in] ? bag.made_in : '';
+  for (const id of ['#np-name', '#np-country', '#np-lat', '#np-lng']) $(id).value = '';
+  $('#new-place').hidden = true;
   setRating('collectability', bag ? bag.collectability ?? null : null);
   setRating('curb_appeal', bag ? bag.curb_appeal ?? null : null);
   setPreview(bag ? bag.photoUrl || bag.thumbUrl : null);
@@ -229,11 +278,12 @@ async function save(goToNext) {
   const { doc, collection, setDoc, updateDoc, serverTimestamp } = fb.fs;
   const isNew = !state.current;
   const ref = isNew ? doc(collection(fb.db, 'bags')) : doc(fb.db, 'bags', state.current.id);
+  let madeIn = $('#f-made-in').value;
   const data = {
     brand,
     flavor: $('#f-flavor').value.trim(),
     notes: $('#f-notes').value.trim(),
-    made_in: $('#f-made-in').value,
+    made_in: madeIn,
     collectability: getRating('collectability'),
     curb_appeal: getRating('curb_appeal'),
     updatedAt: serverTimestamp(),
@@ -241,6 +291,10 @@ async function save(goToNext) {
 
   setBusy(true, 'Saving…');
   try {
+    if (madeIn === NEW_PLACE) {
+      madeIn = await saveNewPlace();
+      data.made_in = madeIn;
+    }
     let oldPaths = [];
     if (state.photo) {
       setBusy(true, 'Uploading photo…');
@@ -365,6 +419,8 @@ async function start() {
   $('#search').addEventListener('input', renderList);
   $('#filter').addEventListener('change', renderList);
   $('#f-brand').addEventListener('input', renderMadeIn);
+  $('#f-made-in').addEventListener('change', () => { $('#new-place').hidden = $('#f-made-in').value !== NEW_PLACE; });
+  $('#np-lookup').addEventListener('click', lookupPlace);
   $('#photo').addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
