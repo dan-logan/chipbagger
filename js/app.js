@@ -160,9 +160,29 @@
             el('dt', {}, 'Collectability'), el('dd', {}, scoreBar(bag.collectability, 'bar-collect')),
             el('dt', {}, 'Curb appeal'), el('dd', {}, scoreBar(bag.curb_appeal, 'bar-curb')),
           ),
+          scoreGuide(),
         )));
     const dlg = $('#bag-dialog');
     if (!dlg.open) dlg.showModal();
+  }
+
+  function scoreGuide() {
+    const term = (name, intro, items) => el('div', { class: 'guide-term' },
+      el('h3', {}, name),
+      el('p', {}, intro),
+      items ? el('ul', {}, items.map(([label, text]) => el('li', {}, el('strong', {}, label + ': '), text))) : null);
+    return el('details', { class: 'score-guide' },
+      el('summary', {}, 'What do Collectability and Curb Appeal mean?'),
+      term('Curb Appeal', 'Shelf presence: whether the bag grabs you from six feet away. It includes:', [
+        ['Artistry', 'illustration, photography, overall visual craft.'],
+        ['Typography & logo', 'lettering, wordmark, how well the type is handled.'],
+        ['Color', 'palette strength and how well it signals the flavor.'],
+        ['Back-of-bag', 'copy, brand story, extra art.'],
+      ]),
+      term('Collectability', 'Rarity, whether regional or international, limited edition bags, and collabs like Rap Snacks or Wawa Hoagiefest. It also includes:', [
+        ['Originality', 'how distinct the bag is from the generic chip-bag look.'],
+        ['Flavor naming', 'creativity of the name (“Mama Zuma’s Revenge” vs. “Original”).'],
+      ]));
   }
 
   function scoreBar(value, cls) {
@@ -366,6 +386,7 @@
     renderBrandFilter();
     renderGrid();
     renderLeaderboard();
+    $('#score-guide').replaceChildren(scoreGuide());
 
     $('#search').addEventListener('input', renderGrid);
     $('#brand-filter').addEventListener('change', renderGrid);
