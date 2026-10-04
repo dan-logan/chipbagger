@@ -13,7 +13,7 @@ python3 -m http.server
 
 ## Deploy on GitHub Pages
 
-Settings → Pages → Source: **Deploy from a branch** → Branch: `main`, folder `/ (root)`. The site appears at `https://dan-logan.github.io/chipbagger/`.
+Settings → Pages → Source: **Deploy from a branch** → Branch: `main`, folder `/ (root)`. The site appears at `https://chipbagger.fun/` (custom domain) and is also accessible at `https://dan-logan.github.io/chipbagger/`.
 
 ## Data
 
