@@ -1,4 +1,4 @@
-// Minimal RFC 4180 CSV parser/serializer (handles quotes, commas and newlines in fields).
+// Minimal RFC 4180 CSV parser (handles quotes, commas and newlines in fields).
 window.CSV = {
   parse(text) {
     const rows = [];
@@ -24,13 +24,5 @@ window.CSV = {
     return rows
       .filter(r => r.some(v => v.trim() !== ''))
       .map(r => Object.fromEntries(header.map((h, j) => [h, (r[j] || '').trim()])));
-  },
-
-  stringify(objects, columns) {
-    const esc = v => {
-      v = v == null ? '' : String(v);
-      return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
-    };
-    return [columns.join(','), ...objects.map(o => columns.map(c => esc(o[c])).join(','))].join('\r\n') + '\r\n';
   }
 };
