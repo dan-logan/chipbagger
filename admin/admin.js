@@ -53,7 +53,7 @@ function flash(message, isError = false) {
 function fail(err, what) {
   console.error(err);
   const denied = err && (err.code === 'permission-denied' || err.code === 'storage/unauthorized');
-  flash(`${what} failed: ${denied ? 'permission denied. Is this account an admin?' : err.message || err}`, true);
+  flash(`${what} failed: ${denied ? 'permission denied.' : err.message || err}`, true);
 }
 
 // ---------- data ----------
@@ -323,8 +323,6 @@ async function onUser(user) {
   $('#account-email').textContent = user.email;
   const token = await user.getIdTokenResult(true);
   if (token.claims.admin !== true) {
-    $('#denied-email').textContent = user.email;
-    $('#denied-email-cmd').textContent = user.email;
     show('denied');
     return;
   }
@@ -363,7 +361,6 @@ async function start() {
     }
   });
   $('#sign-out').addEventListener('click', () => auth.signOut(fb.authInstance));
-  $('#check-again').addEventListener('click', () => onUser(fb.authInstance.currentUser));
 
   $('#search').addEventListener('input', renderList);
   $('#filter').addEventListener('change', renderList);

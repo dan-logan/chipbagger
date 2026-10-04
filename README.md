@@ -52,7 +52,7 @@ Open `https://chipbagger.fun/admin/` and sign in with Google. From there you can
    node migrate.mjs --dry-run   # check the list
    node migrate.mjs             # copies 170 bags and their photos; safe to re-run
    ```
-10. **Make yourself admin.** Sign in once at `/admin/` (it will say "Not an admin account"), then run `node grant-admin.mjs you@gmail.com` and tap **Check again**.
+10. **Make yourself admin.** Sign in once at `/admin/` (it will say "No access"), then run `node grant-admin.mjs you@gmail.com` and reload the page. The admin page deliberately shows no setup hints to anyone without access.
 
 After that, check the public site shows every bag. Once you're happy, `data/bags.csv` and `images/bags`, `images/thumbs` can be removed from the repo.
 

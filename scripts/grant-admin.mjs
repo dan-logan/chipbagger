@@ -18,7 +18,7 @@ try {
   const claims = { ...(user.customClaims || {}) };
   if (revoke) delete claims.admin; else claims.admin = true;
   await auth.setCustomUserClaims(user.uid, claims);
-  console.log(`${revoke ? 'Revoked' : 'Granted'} admin for ${email}. Tap "Check again" on /admin (or sign out and in).`);
+  console.log(`${revoke ? 'Revoked' : 'Granted'} admin for ${email}. Reload /admin/ to pick it up.`);
 } catch (err) {
   if (err.code === 'auth/user-not-found') {
     console.error(`No account for ${email} yet. Sign in to /admin with it once, then run this again.`);
