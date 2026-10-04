@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Bag photos are public. Only accounts with the `admin` custom claim can upload or remove them.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    match /{folder}/{file} {
+      allow read: if folder in ['bags', 'thumbs'];
+      allow create, update: if folder in ['bags', 'thumbs'] && isAdmin()
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if folder in ['bags', 'thumbs'] && isAdmin();
+    }
+  }
+}

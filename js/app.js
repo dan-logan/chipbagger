@@ -29,8 +29,8 @@
 
   // ---------- data ----------
 
-  const imageFile = picture => (picture || '').split('/').pop();
-  const imageUrl = (picture, full) => picture ? `images/${full ? 'bags' : 'thumbs'}/` + encodeURIComponent(imageFile(picture)) : '';
+  // CSV rows name a photo in images/; Firestore bags carry their own Storage URLs.
+  const imagePath = (picture, dir) => picture ? `images/${dir}/` + encodeURIComponent(picture.split('/').pop()) : '';
 
   function parseScore(v) {
     const n = parseFloat(v);
@@ -56,16 +56,31 @@
     return key && state.places[key] ? { key, ...state.places[key] } : null;
   }
 
+  async function loadBagRows() {
+    const source = await import('./bags-source.js');
+    if (source.isConfigured) {
+      return (await source.fetchBags()).map(b => ({ ...b, order: b.createdAt ? b.createdAt.toMillis() : 0 }));
+    }
+    // Firebase isn't set up yet: read the CSV in the repo.
+    const text = await fetch('data/bags.csv', { cache: 'no-cache' }).then(r => r.text());
+    return CSV.parse(text).map((row, i) => ({
+      ...row, order: i, photoUrl: imagePath(row.picture, 'bags'), thumbUrl: imagePath(row.picture, 'thumbs'),
+    }));
+  }
+
   async function loadData() {
-    const [csvText, origins] = await Promise.all([
-      fetch('data/bags.csv', { cache: 'no-cache' }).then(r => r.text()),
+    const [rows, origins] = await Promise.all([
+      loadBagRows(),
       fetch('data/origins.json', { cache: 'no-cache' }).then(r => r.json()),
     ]);
     state.places = origins.places || {};
     state.brands = origins.brands || {};
-    state.bags = CSV.parse(csvText).map((row, i) => ({
+    state.bags = rows.map(row => ({
       ...row,
-      order: i,
+      brand: row.brand || '',
+      flavor: row.flavor || '',
+      notes: row.notes || '',
+      made_in: row.made_in || '',
       collectability: parseScore(row.collectability),
       curb_appeal: parseScore(row.curb_appeal),
     }));
@@ -75,10 +90,12 @@
   // ---------- shared pieces ----------
 
   function bagImage(bag, cls = '', full = false) {
-    const img = el('img', { src: imageUrl(bag.picture, full), alt: `${bag.brand} ${bag.flavor} bag`, loading: 'lazy', class: cls });
-    // New photos may not have a thumbnail yet: fall back to the full image, then to a placeholder.
+    const src = full ? bag.photoUrl : bag.thumbUrl || bag.photoUrl;
+    if (!src) return el('div', { class: `img-missing ${cls}` }, '🥔');
+    const img = el('img', { src, alt: `${bag.brand} ${bag.flavor} bag`, loading: 'lazy', class: cls });
+    // A photo may not have a thumbnail yet: fall back to the full image, then to a placeholder.
     img.addEventListener('error', function onError() {
-      if (!full && !img.dataset.triedFull) { img.dataset.triedFull = '1'; img.src = imageUrl(bag.picture, true); return; }
+      if (!full && !img.dataset.triedFull && bag.photoUrl && img.src !== bag.photoUrl) { img.dataset.triedFull = '1'; img.src = bag.photoUrl; return; }
       img.removeEventListener('error', onError);
       img.replaceWith(el('div', { class: `img-missing ${cls}` }, '🥔'));
     });
