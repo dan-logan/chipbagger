@@ -1,6 +1,6 @@
 # Chip Bagger
 
-A static site for Dan's potato chip bag collection: every bag, a leaderboard for **collectability** and **curb appeal**, and a **chip map** of where the bags come from. No build step; it runs on GitHub Pages as-is.
+A static site for Dan's potato chip bag collection ([@chip.bagger](https://www.instagram.com/chip.bagger/) on Instagram): every bag, a leaderboard for **collectability** and **curb appeal**, and a **chip map** of where the bags come from. No build step; it runs on GitHub Pages as-is.
 
 ## Run locally
 
@@ -48,4 +48,6 @@ A bag's location comes from `made_in` (a key from `places` in `origins.json`) if
 
 ## Credits
 
-Map: [Leaflet](https://leafletjs.com/) (vendored in `vendor/leaflet`, BSD-2-Clause), tiles © OpenStreetMap contributors © CARTO.
+Colors and logo (`images/brand/logo.svg`) follow the @chip.bagger Instagram logo: navy `#334788`, orange `#f4a641`. They're set as variables at the top of `css/style.css`.
+
+Map: [Leaflet](https://leafletjs.com/) (vendored in `vendor/leaflet`, BSD-2-Clause). The map uses no tile server and no API key: country and US state outlines are bundled in `vendor/geo` (from [world-atlas](https://github.com/topojson/world-atlas) and [us-atlas](https://github.com/topojson/us-atlas), Natural Earth / US Census data, ISC license) and drawn with [topojson-client](https://github.com/topojson/topojson-client) (ISC).
