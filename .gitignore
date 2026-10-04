@@ -1,0 +1,6 @@
+node_modules/
+# Firebase service-account keys must never be committed.
+*-firebase-adminsdk-*.json
+service-account*.json
+.firebase/
+*-debug.log
