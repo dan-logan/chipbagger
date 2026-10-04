@@ -161,34 +161,55 @@ function renderMadeIn() {
 
 const slugify = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+// Resolves city / state / country to coordinates with OpenStreetMap Nominatim (works worldwide).
+async function geocode(city, region, country) {
+  const params = new URLSearchParams({ format: 'jsonv2', limit: '1', addressdetails: '1', 'accept-language': 'en' });
+  if (city) params.set('city', city);
+  if (region) params.set('state', region);
+  params.set('country', country);
+  const [hit] = await fetch(`https://nominatim.openstreetmap.org/search?${params}`).then(r => {
+    if (!r.ok) throw new Error('Location lookup failed. Try again.');
+    return r.json();
+  });
+  if (!hit) throw new Error('No match for that location. Check the spelling, or use a nearby larger city.');
+  const addr = hit.address || {};
+  return {
+    lat: Number(Number(hit.lat).toFixed(4)),
+    lng: Number(Number(hit.lon).toFixed(4)),
+    country: addr.country_code === 'us' ? 'USA' : addr.country || country,
+    found: hit.display_name,
+  };
+}
+
+function newPlaceInput() {
+  const city = $('#np-city').value.trim();
+  const region = $('#np-state').value.trim();
+  const country = $('#np-country').value.trim();
+  if (!country) throw new Error('Enter a country for the new location.');
+  if (!city && !region) throw new Error('Enter a city or a state/province for the new location.');
+  return { city, region, country };
+}
+
 async function lookupPlace() {
-  const name = $('#np-name').value.trim();
-  if (!name) { flash('Enter a location name first.', true); return; }
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(name)}`;
-    const [hit] = await fetch(url).then(r => r.json());
-    if (!hit) { flash('No match found. Enter coordinates manually.', true); return; }
-    $('#np-lat').value = Number(hit.lat).toFixed(4);
-    $('#np-lng').value = Number(hit.lon).toFixed(4);
-    if (!$('#np-country').value.trim() && hit.address && hit.address.country) $('#np-country').value = hit.address.country;
+    const { city, region, country } = newPlaceInput();
+    const hit = await geocode(city, region, country);
+    $('#np-result').textContent = `Found: ${hit.found} (${hit.lat}, ${hit.lng})`;
   } catch (err) {
-    flash('Lookup failed. Enter coordinates manually.', true);
+    $('#np-result').textContent = '';
+    flash(err.message, true);
   }
 }
 
 // Creates places/{key} for a location typed into the form and returns its key.
 async function saveNewPlace() {
-  const name = $('#np-name').value.trim();
-  const country = $('#np-country').value.trim();
-  const lat = parseFloat($('#np-lat').value);
-  const lng = parseFloat($('#np-lng').value);
-  const key = slugify(name);
-  if (!name || !key) throw new Error('Enter a name for the new location.');
-  if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180) {
-    throw new Error('Enter valid coordinates for the new location, or use Look up coordinates.');
-  }
+  const { city, region, country } = newPlaceInput();
+  const name = [city, region || country].filter(Boolean).join(', ');
+  const key = slugify([city, region, country].filter(Boolean).join(' '));
+  if (!key) throw new Error('Enter a valid location.');
   if (!state.places[key]) {
-    const place = { name, country, lat, lng };
+    const hit = await geocode(city, region, country);
+    const place = { name, country: hit.country, lat: hit.lat, lng: hit.lng };
     await fb.fs.setDoc(fb.fs.doc(fb.db, 'places', key), place);
     state.places[key] = place;
   }
@@ -208,7 +229,8 @@ function openEditor(bag) {
   $('#f-notes').value = bag ? bag.notes || '' : '';
   renderMadeIn();
   $('#f-made-in').value = bag && bag.made_in && state.places[bag.made_in] ? bag.made_in : '';
-  for (const id of ['#np-name', '#np-country', '#np-lat', '#np-lng']) $(id).value = '';
+  for (const id of ['#np-city', '#np-state', '#np-country']) $(id).value = '';
+  $('#np-result').textContent = '';
   $('#new-place').hidden = true;
   setRating('collectability', bag ? bag.collectability ?? null : null);
   setRating('curb_appeal', bag ? bag.curb_appeal ?? null : null);

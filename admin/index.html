@@ -101,18 +101,20 @@
 
         <div id="new-place" class="new-place" hidden>
           <label class="field">
-            <span>New location name</span>
-            <input id="np-name" type="text" maxlength="100" placeholder="e.g. Lancaster, Pennsylvania">
+            <span>City</span>
+            <input id="np-city" type="text" maxlength="100" autocomplete="off" placeholder="e.g. Lancaster">
+          </label>
+          <label class="field">
+            <span>State / province</span>
+            <input id="np-state" type="text" maxlength="100" autocomplete="off" placeholder="e.g. Pennsylvania">
           </label>
           <label class="field">
             <span>Country</span>
-            <input id="np-country" type="text" maxlength="100" placeholder="e.g. USA">
+            <input id="np-country" type="text" maxlength="100" autocomplete="off" placeholder="e.g. USA">
           </label>
-          <div class="row">
-            <label class="field"><span>Latitude</span><input id="np-lat" type="number" step="any" inputmode="decimal"></label>
-            <label class="field"><span>Longitude</span><input id="np-lng" type="number" step="any" inputmode="decimal"></label>
-          </div>
-          <button type="button" id="np-lookup" class="btn">Look up coordinates</button>
+          <button type="button" id="np-lookup" class="btn">Check location</button>
+          <p id="np-result" class="muted" role="status"></p>
+          <p class="muted">Coordinates are looked up automatically when you save.</p>
         </div>
 
         <fieldset class="ratings">
