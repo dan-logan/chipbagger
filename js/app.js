@@ -327,16 +327,19 @@
     const groups = Object.values(byPlace).sort((a, b) => b.bags.length - a.bags.length);
 
     if (!state.map && window.L) {
-      state.map = L.map('chip-map', { worldCopyJump: true, scrollWheelZoom: false }).setView([35, -40], 2);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 18,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      }).addTo(state.map);
+      // No tile server: the base map is drawn from bundled country/state outlines,
+      // so it needs no API key and no third-party requests.
+      state.map = L.map('chip-map', { scrollWheelZoom: false, zoomSnap: 0.5, minZoom: 0, maxZoom: 9, attributionControl: true })
+        .setView([35, -40], 2);
+      state.map.attributionControl.setPrefix(false).addAttribution('Outlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a>');
+      state.map.createPane('basemap').style.zIndex = 200;
+      drawBaseMap(state.map);
       const max = Math.max(...groups.map(g => g.bags.length));
+      const pin = mapColors();
       groups.forEach(g => {
         const r = 6 + 16 * Math.sqrt(g.bags.length / max);
         const marker = L.circleMarker([g.place.lat, g.place.lng], {
-          radius: r, color: '#7a3e00', weight: 2, fillColor: '#f2a900', fillOpacity: 0.85,
+          radius: r, color: pin.pinStroke, weight: 3, fillColor: pin.pinFill, fillOpacity: 0.95,
         }).addTo(state.map);
         marker.bindTooltip(`${g.place.name}: ${g.bags.length} bag${g.bags.length > 1 ? 's' : ''}`);
         marker.bindPopup(() => popupFor(g), { maxWidth: 320, minWidth: 240 });
@@ -350,12 +353,56 @@
       el('ul', { class: 'places' }, ...groups.map(g => el('li', {},
         el('button', {
           class: 'link', type: 'button',
-          onclick: () => { if (state.map) { state.map.setView([g.place.lat, g.place.lng], 7); state.map.getContainer().scrollIntoView({ behavior: 'smooth', block: 'center' }); } },
+          onclick: () => { if (state.map) { state.map.setView([g.place.lat, g.place.lng], 6); state.map.getContainer().scrollIntoView({ behavior: 'smooth', block: 'center' }); } },
         }, g.place.name),
         el('span', { class: 'muted' }, ` · ${[...new Set(g.bags.map(b => b.brand))].join(', ')} · ${g.bags.length}`)))),
       unknown.length ? el('p', { class: 'muted small' },
         `Origin unknown for ${unknown.length} bag${unknown.length > 1 ? 's' : ''}: ${[...new Set(unknown.map(b => b.brand))].join(', ')}.`) : null,
     );
+  }
+
+  function mapColors() {
+    const css = getComputedStyle(document.documentElement);
+    const v = name => css.getPropertyValue(name).trim();
+    return {
+      water: v('--map-water'), land: v('--map-land'), border: v('--map-border'),
+      pinFill: v('--orange'), pinStroke: v('--navy-strong'),
+    };
+  }
+
+  // Shapes that cross the 180° line (Russia, Fiji) jump from +180 to -180 mid-ring,
+  // which Leaflet draws as a band across the whole map. Keep each ring continuous instead.
+  function unwrapDateline(geom) {
+    if (!geom) return;
+    const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+    polys.forEach(rings => rings.forEach(ring => {
+      for (let i = 1; i < ring.length; i++) {
+        const d = ring[i][0] - ring[i - 1][0];
+        if (d > 180) ring[i][0] -= 360;
+        else if (d < -180) ring[i][0] += 360;
+      }
+    }));
+  }
+
+  async function drawBaseMap(map) {
+    if (!window.topojson) return;
+    const c = mapColors();
+    map.getContainer().style.background = c.water;
+    const renderer = L.canvas({ pane: 'basemap', padding: 0.5 });
+    const style = { renderer, color: c.border, weight: 0.8, fillColor: c.land, fillOpacity: 1, interactive: false };
+    try {
+      const [world, us] = await Promise.all(
+        ['vendor/geo/countries-50m.json', 'vendor/geo/states-10m.json'].map(u => fetch(u).then(r => r.json())));
+      const countries = topojson.feature(world, world.objects.countries);
+      countries.features = countries.features.filter(f => f.properties.name !== 'Antarctica');
+      countries.features.forEach(f => unwrapDateline(f.geometry));
+      L.geoJSON(countries, { style }).addTo(map);
+      L.geoJSON(topojson.mesh(us, us.objects.states, (a, b) => a !== b), {
+        style: { renderer, color: c.border, weight: 0.5, opacity: 0.8, fill: false, interactive: false },
+      }).addTo(map);
+    } catch (err) {
+      console.error('Base map failed to load', err);
+    }
   }
 
   function popupFor(g) {
