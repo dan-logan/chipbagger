@@ -6,6 +6,9 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Chip Bagger Admin</title>
   <link rel="icon" type="image/svg+xml" href="../images/brand/logo.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#334788">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="admin.css">
 </head>
@@ -127,5 +130,8 @@
   </main>
 
   <script type="module" src="admin.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  </script>
 </body>
 </html>

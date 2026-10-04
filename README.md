@@ -34,6 +34,8 @@ Until `js/firebase-config.js` is filled in, the site falls back to `data/bags.cs
 
 Open `https://chipbagger.fun/admin/` and sign in with Google. From there you can add a bag (take or choose a photo; the phone shrinks it, makes the thumbnail and drops the photo's EXIF/GPS data before uploading), edit any bag, rate it (1–10 sliders; **Save & next** jumps to the next unrated bag), and delete or restore it (the **Deleted** filter lists deleted bags).
 
+The admin is an installable app (PWA). On the phone, open `/admin/` in Chrome and choose **Install app** / **Add to Home screen**; it then launches full-screen from its own icon. Files: `admin/manifest.webmanifest`, `admin/sw.js`, `admin/icon-*.png`.
+
 ### Firebase setup (one time)
 
 1. **Create the project.** [Firebase console](https://console.firebase.google.com/) → Add project → `chipbagger`. Analytics isn't needed.
