@@ -1,16 +1,12 @@
 (() => {
   'use strict';
 
-  const RATINGS_KEY = 'chipbagger.ratings.v1';
-  const CSV_COLUMNS = ['brand', 'flavor', 'notes', 'picture', 'collectability', 'curb_appeal', 'made_in'];
   const BOARD_SIZE = 10;
 
   const state = {
     bags: [],
     places: {},
     brands: {},
-    localRatings: loadLocalRatings(),
-    rateMode: false,
     map: null,
     boardExpanded: {},
   };
@@ -33,13 +29,6 @@
 
   // ---------- data ----------
 
-  function loadLocalRatings() {
-    try { return JSON.parse(localStorage.getItem(RATINGS_KEY)) || {}; } catch { return {}; }
-  }
-  function saveLocalRatings() {
-    try { localStorage.setItem(RATINGS_KEY, JSON.stringify(state.localRatings)); } catch { /* storage unavailable */ }
-  }
-
   const imageFile = picture => (picture || '').split('/').pop();
   const imageUrl = (picture, full) => picture ? `images/${full ? 'bags' : 'thumbs'}/` + encodeURIComponent(imageFile(picture)) : '';
 
@@ -48,14 +37,8 @@
     return Number.isFinite(n) && n > 0 ? Math.min(10, n) : null;
   }
 
-  function score(bag, field) {
-    const local = state.localRatings[bag.key];
-    if (local && local[field] != null) return local[field];
-    return bag[field];
-  }
-
   function overall(bag) {
-    const a = score(bag, 'collectability'), b = score(bag, 'curb_appeal');
+    const a = bag.collectability, b = bag.curb_appeal;
     return a != null && b != null ? (a + b) / 2 : null;
   }
 
@@ -83,7 +66,6 @@
     state.bags = CSV.parse(csvText).map((row, i) => ({
       ...row,
       order: i,
-      key: imageFile(row.picture) || `${row.brand}|${row.flavor}`,
       collectability: parseScore(row.collectability),
       curb_appeal: parseScore(row.curb_appeal),
     }));
@@ -142,7 +124,7 @@
     let list = state.bags.filter(b =>
       (!brand || b.brand === brand) &&
       (!q || `${b.brand} ${b.flavor} ${b.notes} ${b.place ? b.place.name : ''}`.toLowerCase().includes(q)));
-    const byScore = f => (a, b) => (score(b, f) ?? -1) - (score(a, f) ?? -1) || a.brand.localeCompare(b.brand);
+    const byScore = f => (a, b) => (b[f] ?? -1) - (a[f] ?? -1) || a.brand.localeCompare(b.brand);
     list.sort({
       added: (a, b) => b.order - a.order,
       brand: (a, b) => a.brand.localeCompare(b.brand) || a.flavor.localeCompare(b.flavor),
@@ -158,31 +140,15 @@
         el('div', { class: 'card-flavor' }, bag.flavor),
         bag.notes ? el('div', { class: 'card-notes' }, bag.notes) : null,
         el('div', { class: 'card-scores' },
-          scorePill('Collect', score(bag, 'collectability'), 'pill-collect'),
-          scorePill('Curb', score(bag, 'curb_appeal'), 'pill-curb')),
+          scorePill('Collect', bag.collectability, 'pill-collect'),
+          scorePill('Curb', bag.curb_appeal, 'pill-curb')),
       ))));
   }
 
   // ---------- bag detail ----------
 
   function openBag(bag) {
-    const detail = $('#bag-detail');
-    const ratingInput = (field, label) => {
-      const current = score(bag, field);
-      const out = el('output', {}, fmt(current));
-      const input = el('input', {
-        type: 'range', min: 1, max: 10, step: 1, value: current ?? 5, 'aria-label': label,
-        oninput: e => { out.textContent = e.target.value; },
-        onchange: e => {
-          state.localRatings[bag.key] = { ...(state.localRatings[bag.key] || {}), [field]: Number(e.target.value) };
-          saveLocalRatings();
-          refreshScores();
-        },
-      });
-      return el('label', { class: 'rate-row' }, el('span', {}, label), input, out);
-    };
-
-    detail.replaceChildren(
+    $('#bag-detail').replaceChildren(
       el('div', { class: 'detail' },
         el('div', { class: 'detail-img' }, bagImage(bag, '', true)),
         el('div', { class: 'detail-body' },
@@ -191,16 +157,11 @@
           bag.notes ? el('p', { class: 'muted' }, bag.notes) : null,
           el('dl', { class: 'facts' },
             el('dt', {}, 'Made in'), el('dd', {}, bag.place ? bag.place.name : 'Unknown'),
-            el('dt', {}, 'Collectability'), el('dd', {}, scoreBar(score(bag, 'collectability'), 'bar-collect')),
-            el('dt', {}, 'Curb appeal'), el('dd', {}, scoreBar(score(bag, 'curb_appeal'), 'bar-curb')),
+            el('dt', {}, 'Collectability'), el('dd', {}, scoreBar(bag.collectability, 'bar-collect')),
+            el('dt', {}, 'Curb appeal'), el('dd', {}, scoreBar(bag.curb_appeal, 'bar-curb')),
           ),
-          state.rateMode ? el('div', { class: 'rate-box' },
-            el('strong', {}, 'Rate this bag'),
-            ratingInput('collectability', 'Collectability'),
-            ratingInput('curb_appeal', 'Curb appeal')) : null,
         )));
     const dlg = $('#bag-dialog');
-    dlg.dataset.key = bag.key;
     if (!dlg.open) dlg.showModal();
   }
 
@@ -229,7 +190,7 @@
       .filter(x => x.v != null)
       .sort((x, y) => y.v - x.v || x.b.brand.localeCompare(y.b.brand));
     if (!ranked.length) {
-      listEl.replaceChildren(el('li', { class: 'empty' }, 'No ratings yet. Turn on “Rate bags” to start scoring.'));
+      listEl.replaceChildren(el('li', { class: 'empty' }, 'No ratings yet.'));
       return;
     }
     const shown = state.boardExpanded[id] ? ranked : ranked.slice(0, BOARD_SIZE);
@@ -272,47 +233,10 @@
   }
 
   function renderLeaderboard() {
-    renderBoard($('#board-collectability'), 'collectability', b => score(b, 'collectability'), 'bar-collect');
-    renderBoard($('#board-curb'), 'curb', b => score(b, 'curb_appeal'), 'bar-curb');
+    renderBoard($('#board-collectability'), 'collectability', b => b.collectability, 'bar-collect');
+    renderBoard($('#board-curb'), 'curb', b => b.curb_appeal, 'bar-curb');
     renderBoard($('#board-overall'), 'overall', overall, 'bar-overall');
     renderBrandBoard();
-  }
-
-  function setRateMode(on) {
-    state.rateMode = on;
-    $('#rate-toggle').textContent = on ? 'Done rating' : 'Rate bags';
-    $('#rate-toggle').classList.toggle('btn-active', on);
-    $('#rate-export').hidden = !on;
-    $('#rate-help').hidden = !on;
-    document.body.classList.toggle('rating', on);
-  }
-
-  function exportCsv() {
-    const rows = state.bags.map(b => ({
-      brand: b.brand, flavor: b.flavor, notes: b.notes, picture: b.picture, made_in: b.made_in,
-      collectability: score(b, 'collectability') ?? '',
-      curb_appeal: score(b, 'curb_appeal') ?? '',
-    }));
-    const blob = new Blob([CSV.stringify(rows, CSV_COLUMNS)], { type: 'text/csv' });
-    const a = el('a', { href: URL.createObjectURL(blob), download: 'bags.csv' });
-    document.body.append(a); a.click(); a.remove();
-  }
-
-  function refreshScores() {
-    renderStats();
-    renderGrid();
-    renderLeaderboard();
-    const dlg = $('#bag-dialog');
-    if (dlg.open) {
-      // Update the facts bars without rebuilding the open sliders.
-      const bars = dlg.querySelectorAll('.facts .scorebar');
-      const key = dlg.dataset.key;
-      const bag = state.bags.find(b => b.key === key);
-      if (bag && bars.length === 2) {
-        bars[0].replaceWith(scoreBar(score(bag, 'collectability'), 'bar-collect'));
-        bars[1].replaceWith(scoreBar(score(bag, 'curb_appeal'), 'bar-curb'));
-      }
-    }
   }
 
   // ---------- map ----------
@@ -446,12 +370,7 @@
     $('#search').addEventListener('input', renderGrid);
     $('#brand-filter').addEventListener('change', renderGrid);
     $('#sort').addEventListener('change', renderGrid);
-    $('#rate-toggle').addEventListener('click', () => setRateMode(!state.rateMode));
-    $('#rate-export').addEventListener('click', exportCsv);
     $('#bag-dialog').addEventListener('click', e => { if (e.target.id === 'bag-dialog') e.target.close(); });
-
-    const params = new URLSearchParams(location.search);
-    if (params.has('rate')) setRateMode(true);
 
     window.addEventListener('hashchange', showTab);
     showTab();
