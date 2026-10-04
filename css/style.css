@@ -151,21 +151,10 @@ button { font: inherit; color: inherit; }
 .bar-collect { background: var(--collect); }
 .bar-curb { background: var(--curb); }
 .bar-overall { background: var(--overall); }
-.rate-box { border: 2px dashed var(--highlight); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
-.rate-row { display: grid; grid-template-columns: 110px 1fr 28px; align-items: center; gap: 10px; font-size: .9rem; }
-.rate-row input { accent-color: var(--accent); width: 100%; }
-.rate-row output { font-weight: 800; text-align: right; }
 
 /* leaderboard */
 .board-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .board-head p { margin: 0; }
-.rate-controls { display: flex; gap: 8px; }
-.btn {
-  border: 1px solid var(--border); background: var(--surface); padding: 9px 16px; border-radius: 999px;
-  font-weight: 700; cursor: pointer;
-}
-.btn:hover { border-color: var(--accent); }
-.btn-primary, .btn-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .notice { background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--highlight); border-radius: 10px; padding: 10px 14px; }
 .boards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
 .board { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); min-width: 0; }

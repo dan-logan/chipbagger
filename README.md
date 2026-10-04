@@ -26,11 +26,7 @@ Settings → Pages → Source: **Deploy from a branch** → Branch: `main`, fold
 
 ### Ratings
 
-Scores are 1–10. Either type them into the `collectability` and `curb_appeal` columns, or use the site:
-
-1. Open the Leaderboard and click **Rate bags** (or visit `/?rate`).
-2. Open any bag and move the two sliders. Scores save in your browser as you go.
-3. Click **Download bags.csv** and commit it over `data/bags.csv`.
+Scores are 1–10, set in the `collectability` and `curb_appeal` columns of `data/bags.csv`. The public site only displays them.
 
 ### Adding bags
 
