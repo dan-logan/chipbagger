@@ -239,6 +239,7 @@ function openEditor(bag) {
   $('#f-notes').value = bag ? bag.notes || '' : '';
   renderMadeIn();
   $('#f-made-in').value = bag && bag.made_in && state.places[bag.made_in] ? bag.made_in : '';
+  renderMadeIn();
   for (const id of ['#np-city', '#np-state', '#np-country']) $(id).value = '';
   $('#np-result').textContent = '';
   $('#new-place').hidden = true;
