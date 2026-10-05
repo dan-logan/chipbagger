@@ -1,6 +1,6 @@
 # Chip Bagger
 
-A static site for Dan's potato chip bag collection ([@chip.bagger](https://www.instagram.com/chip.bagger/) on Instagram): every bag, a leaderboard for **collectability** and **curb appeal**, and a **chip map** of where the bags come from. No build step; it runs on GitHub Pages as-is.
+A static site for Dan's potato chip bag collection ([@chip.bagger](https://www.instagram.com/chip.bagger/) on Instagram): every bag, a leaderboard for **originality** and **curb appeal**, and a **chip map** of where the bags come from. No build step; it runs on GitHub Pages as-is.
 
 ## Run locally
 
@@ -26,7 +26,7 @@ Until `js/firebase-config.js` is filled in, the site falls back to `data/bags.cs
 | `js/firebase-config.js` | Firebase web app settings (public by design; the rules control access). |
 | `firestore.rules`, `storage.rules` | Who can read and write. Anyone can read active bags and photos; only accounts with the `admin` claim can see deleted bags or change anything. Hard deletes are refused. |
 | `admin/` | The admin page at `/admin/` (not linked from the site, marked `noindex`). |
-| `scripts/` | `migrate.mjs` (one-time import of the CSV and photos) and `grant-admin.mjs` (gives an account admin access). |
+| `scripts/` | `migrate.mjs` (one-time import of the CSV and photos), `grant-admin.mjs` (gives an account admin access) and `rename-originality.mjs` (one-time rename of the old `collectability` score to `originality`; run it before publishing the matching `firestore.rules`). |
 | `data/origins.json` | Map locations (`places`) and which place each brand maps to (`brands`). `byNote` switches a brand's place when a bag's notes mention a word, e.g. Lay's bags marked "China" or "Taiwan". |
 | `data/bags.csv`, `images/` | The pre-Firebase data. Only used while Firebase isn't configured. |
 

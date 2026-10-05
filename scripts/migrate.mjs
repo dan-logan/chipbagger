@@ -93,7 +93,7 @@ async function main() {
       flavor: row.flavor || '',
       notes: row.notes || '',
       made_in: row.made_in || '',
-      collectability: score(row.collectability),
+      originality: score(row.originality),
       curb_appeal: score(row.curb_appeal),
       active: true,
       createdAt: Timestamp.fromMillis(base + i * 1000),

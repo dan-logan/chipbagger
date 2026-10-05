@@ -61,7 +61,7 @@ function fail(err, what) {
 // ---------- data ----------
 
 const hasLocation = b => !!(b.made_in && state.places[b.made_in]);
-const isRated = b => b.collectability != null && b.curb_appeal != null;
+const isRated = b => b.originality != null && b.curb_appeal != null;
 const millis = t => (t && t.toMillis ? t.toMillis() : 0);
 const fmt = n => n == null ? '–' : String(n);
 
@@ -122,7 +122,7 @@ function renderList() {
         el('strong', {}, b.brand),
         el('span', {}, b.flavor || ' '),
         el('span', { class: 'bag-row-scores' },
-          pill('Collect', b.collectability, 'pill-collect'),
+          pill('Originality', b.originality, 'pill-originality'),
           pill('Curb', b.curb_appeal, 'pill-curb')))))));
   if (!list.length) $('#bag-list').replaceChildren(el('li', { class: 'muted' }, 'No bags here.'));
 }
@@ -243,7 +243,7 @@ function openEditor(bag) {
   for (const id of ['#np-city', '#np-state', '#np-country']) $(id).value = '';
   $('#np-result').textContent = '';
   $('#new-place').hidden = true;
-  setRating('collectability', bag ? bag.collectability ?? null : null);
+  setRating('originality', bag ? bag.originality ?? null : null);
   setRating('curb_appeal', bag ? bag.curb_appeal ?? null : null);
   setPreview(bag ? bag.photoUrl || bag.thumbUrl : null);
 
@@ -317,7 +317,7 @@ async function save(goToNext) {
     flavor: $('#f-flavor').value.trim(),
     notes: $('#f-notes').value.trim(),
     made_in: madeIn,
-    collectability: getRating('collectability'),
+    originality: getRating('originality'),
     curb_appeal: getRating('curb_appeal'),
     updatedAt: serverTimestamp(),
   };
