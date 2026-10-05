@@ -88,10 +88,14 @@ async function loadOrigins() {
   }
 }
 
-function brandDefaultPlace(brand) {
+function brandDefaultKey(brand) {
   const entry = state.brands[brand];
-  const place = entry && state.places[entry.place];
-  return place ? place.name : null;
+  return entry && state.places[entry.place] ? entry.place : null;
+}
+
+function brandDefaultPlace(brand) {
+  const key = brandDefaultKey(brand);
+  return key ? state.places[key].name : null;
 }
 
 // ---------- list ----------
@@ -160,6 +164,9 @@ function renderMadeIn() {
   select.value = keep;
   if (select.value !== keep) select.value = '';
   $('#new-place').hidden = select.value !== NEW_PLACE;
+  const defKey = brandDefaultKey($('#f-brand').value.trim());
+  $('#apply-brand-default').hidden = !defKey || select.value === defKey;
+  $('#apply-brand-default').textContent = `Use ${def} for this bag`;
 }
 
 const slugify = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -444,7 +451,16 @@ async function start() {
   $('#search').addEventListener('input', renderList);
   $('#filter').addEventListener('change', renderList);
   $('#f-brand').addEventListener('input', renderMadeIn);
-  $('#f-made-in').addEventListener('change', () => { $('#new-place').hidden = $('#f-made-in').value !== NEW_PLACE; });
+  $('#f-made-in').addEventListener('change', () => {
+    $('#new-place').hidden = $('#f-made-in').value !== NEW_PLACE;
+    renderMadeIn();
+  });
+  $('#apply-brand-default').addEventListener('click', () => {
+    const key = brandDefaultKey($('#f-brand').value.trim());
+    if (!key) return;
+    $('#f-made-in').value = key;
+    renderMadeIn();
+  });
   $('#np-lookup').addEventListener('click', lookupPlace);
   $('#photo').addEventListener('change', e => {
     const file = e.target.files[0];
