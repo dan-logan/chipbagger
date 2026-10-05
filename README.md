@@ -78,6 +78,6 @@ A bag's location comes from its **Made in** setting (a key from `places` in `ori
 
 ## Credits
 
-Colors and logo (`images/brand/logo.svg`) follow the @chip.bagger Instagram logo: navy `#334788`, orange `#f4a641`. They're set as variables at the top of `css/style.css`.
+Colors and logo (`images/brand/logo.svg`, and `images/brand/og-image.png` for link previews) follow the @chip.bagger Instagram logo: navy `#334788`, orange `#f4a641`. They're set as variables at the top of `css/style.css`.
 
 Map: [Leaflet](https://leafletjs.com/) (vendored in `vendor/leaflet`, BSD-2-Clause). The map uses no tile server and no API key: country and US state outlines are bundled in `vendor/geo` (from [world-atlas](https://github.com/topojson/world-atlas) and [us-atlas](https://github.com/topojson/us-atlas), Natural Earth / US Census data, ISC license) and drawn with [topojson-client](https://github.com/topojson/topojson-client) (ISC).
