@@ -60,6 +60,7 @@ function fail(err, what) {
 
 // ---------- data ----------
 
+const hasLocation = b => !!(b.made_in && state.places[b.made_in]);
 const isRated = b => b.collectability != null && b.curb_appeal != null;
 const millis = t => (t && t.toMillis ? t.toMillis() : 0);
 const fmt = n => n == null ? '–' : String(n);
@@ -101,11 +102,13 @@ function renderList() {
   const list = state.bags.filter(b => {
     if (filter === 'deleted' ? b.active : !b.active) return false;
     if (filter === 'unrated' && isRated(b)) return false;
+    if (filter === 'nolocation' && hasLocation(b)) return false;
     return !q || `${b.brand} ${b.flavor} ${b.notes || ''}`.toLowerCase().includes(q);
   });
   const total = state.bags.filter(b => b.active).length;
   const unrated = state.bags.filter(b => b.active && !isRated(b)).length;
-  $('#list-count').textContent = `${list.length} shown · ${total} active · ${unrated} need rating`;
+  const noLocation = state.bags.filter(b => b.active && !hasLocation(b)).length;
+  $('#list-count').textContent = `${list.length} shown · ${total} active · ${unrated} need rating · ${noLocation} need location`;
   $('#bag-list').replaceChildren(...list.map(b => el('li', {},
     el('a', { class: 'bag-row', href: `#bag/${b.id}` },
       b.thumbUrl || b.photoUrl
