@@ -1,0 +1,597 @@
+<title>Chip Bagger Architecture</title>
+<meta name="description" content="How chipbagger.fun works: a static GitHub Pages site, a Firebase back end sealed by security rules, and an admin app on the collector's phone.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Martian+Mono:wght@400;600&family=Schibsted+Grotesk:ital,wght@0,400;0,600;0,800;1,400&display=swap">
+<style>
+/* Layout: a two-ink risograph poster. Navy and orange ink (the @chip.bagger logo) printed on cool paper,
+   one wide diagram as the centrepiece, numbered steps and a nutrition-facts panel underneath.
+   Deliberately single-theme: it is a printed object, so every color is set explicitly. */
+:root {
+  --paper: #eceef2;
+  --paper-2: #e2e5ec;
+  --ink: #2f3f86;          /* riso "medium blue", close to brand navy #334788 */
+  --ink-deep: #1d2858;
+  --orange: #f4a641;       /* brand orange */
+  --orange-ink: #a85d06;   /* orange dark enough to read as text on paper */
+  --muted: #59618a;
+  --rule: #b9bfd3;
+
+  --display: "Bagel Fat One", "Arial Rounded MT Bold", "Helvetica Neue", system-ui, sans-serif;
+  --body: "Schibsted Grotesk", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --mono: "Martian Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+html { background: var(--paper); }
+body {
+  background: var(--paper);
+  color: var(--ink-deep);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 1440px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 40px); padding-block: 28px 64px; position: relative; overflow: hidden; }
+
+/* paper grain over everything */
+.grain { position: absolute; inset: 0; pointer-events: none; z-index: 50; opacity: .22; mix-blend-mode: multiply; }
+
+/* ---------- masthead ---------- */
+.mast { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; padding-block: 12px 18px; }
+.flower { position: absolute; right: -150px; top: -190px; width: 520px; height: 520px; pointer-events: none; opacity: .9; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+h1 {
+  isolation: isolate;
+  font-family: var(--display); font-weight: 400; margin: 0; line-height: .9;
+  font-size: clamp(54px, 10vw, 132px); letter-spacing: -.01em; color: var(--ink);
+  position: relative; text-wrap: balance;
+}
+h1 .mis { position: absolute; left: 4px; top: 4px; color: var(--orange); z-index: -1; mix-blend-mode: multiply; }
+h1 .line2 { display: block; font-size: .42em; line-height: 1.1; margin-top: .18em; color: var(--ink-deep); }
+.lede { max-width: 60ch; margin: 18px 0 0; font-size: 17px; color: var(--ink-deep); }
+.lede b { font-weight: 800; }
+.stamp {
+  position: relative; z-index: 1; font-family: var(--mono); font-size: 11px; line-height: 1.6; text-align: right;
+  color: var(--ink); border: 2px solid var(--ink); padding: 10px 14px; transform: rotate(-2.5deg); background: var(--paper);
+}
+.stamp b { display: block; font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .02em; }
+
+/* ---------- legend ---------- */
+.legend { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 22px 0 10px; font-size: 14px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 10px; }
+.legend svg { flex: none; }
+.legend .hint { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-left: auto; }
+
+/* ---------- diagram ---------- */
+.diagram-wrap { overflow-x: auto; margin-inline: -8px; padding: 8px; -webkit-overflow-scrolling: touch; }
+.diagram { display: block; width: 100%; min-width: 1040px; height: auto; }
+.diagram text { font-family: var(--body); fill: var(--ink-deep); }
+.diagram .mono { font-family: var(--mono); }
+.diagram .disp { font-family: var(--display); }
+.scroll-hint { display: none; font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin: 4px 0 0; }
+@media (max-width: 1040px) { .scroll-hint { display: block; } }
+
+/* ---------- steps ---------- */
+.paths { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 44px; border-top: 3px solid var(--ink); padding-top: 22px; }
+.path h2 { font-family: var(--display); font-weight: 400; font-size: 30px; line-height: 1; margin: 0 0 4px; color: var(--ink); }
+.path .who { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+.path ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.path li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; font-size: 15px; line-height: 1.5; }
+.num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 12px; margin-top: 1px; }
+.num.r { background: var(--ink); color: var(--paper); }
+.num.w { background: var(--orange); color: var(--ink-deep); box-shadow: 1.5px 1.5px 0 var(--ink); }
+.num.o { background: var(--paper); color: var(--ink); border: 2px dashed var(--ink); }
+code { font-family: var(--mono); font-size: .8em; color: var(--ink); background: var(--paper-2); padding: .08em .35em; border-radius: 3px; overflow-wrap: anywhere; }
+.aside { margin: 14px 0 0; padding: 10px 12px; border-left: 3px solid var(--orange); background: var(--paper-2); font-size: 14px; color: var(--ink-deep); }
+
+/* ---------- lower band: pin logic + facts ---------- */
+.lower { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 40px; margin-top: 52px; align-items: start; }
+.lower h2 { font-family: var(--display); font-weight: 400; font-size: 30px; line-height: 1; margin: 0 0 6px; color: var(--ink); }
+.lower .sub { margin: 0 0 16px; max-width: 60ch; color: var(--ink-deep); }
+.pinflow { display: block; width: 100%; height: auto; }
+.pinflow text { font-family: var(--body); fill: var(--ink-deep); }
+.pinflow .mono { font-family: var(--mono); }
+
+.facts { border: 3px solid var(--ink-deep); background: #f7f8fa; padding: 10px 14px 14px; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+.facts h3 { font-family: var(--body); font-weight: 800; font-size: 34px; line-height: 1; margin: 0; letter-spacing: -.01em; }
+.facts .serv { font-size: 14px; margin: 6px 0 0; padding-bottom: 6px; border-bottom: 10px solid var(--ink-deep); }
+.facts .serv b { font-weight: 800; }
+.facts dl { margin: 0; }
+.facts .row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--ink-deep); font-size: 14px; }
+.facts .row.thick { border-bottom-width: 5px; }
+.facts dt { font-weight: 800; min-width: 0; }
+.facts dt span { font-weight: 400; }
+.facts dd { margin: 0; font-weight: 800; text-align: right; white-space: nowrap; }
+.facts .ind dt { font-weight: 400; padding-left: 16px; }
+.facts .foot { font-size: 11.5px; line-height: 1.45; margin: 8px 0 0; }
+
+.colophon { margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 10.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 24px; justify-content: space-between; }
+
+@media (max-width: 900px) {
+  .paths { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+  .lower { grid-template-columns: minmax(0, 1fr); }
+  .mast { grid-template-columns: minmax(0, 1fr); }
+  .stamp { justify-self: start; text-align: left; }
+  .flower { width: 360px; height: 360px; right: -120px; top: -140px; }
+  .legend .hint { margin-left: 0; }
+}
+
+/* one orchestrated moment: the ink runs along the paths once on load */
+@media (prefers-reduced-motion: reduce) { .tracer { display: none; } }
+</style>
+
+
+
+<div class="page">
+<!-- paper grain -->
+<svg class="grain" aria-hidden="true" width="100%" height="100%">
+  <filter id="grainf"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .12  0 0 0 0 .16  0 0 0 0 .35  0 0 0 .55 0"/></filter>
+  <rect width="100%" height="100%" filter="url(#grainf)"/>
+</svg>
+
+  <!-- the @chip.bagger flower, printed huge in halftone -->
+  <svg class="flower" viewBox="-500 -500 1000 1000" aria-hidden="true">
+    <defs>
+      <pattern id="ht-o" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(22)"><circle cx="7" cy="7" r="4.6" fill="#f4a641"/></pattern>
+      <pattern id="ht-n" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(-15)"><circle cx="6" cy="6" r="2.2" fill="#2f3f86"/></pattern>
+    </defs>
+    <g style="mix-blend-mode:multiply">
+      <circle cx="0" cy="-365" r="108" fill="url(#ht-o)"/><circle cx="365" cy="0" r="108" fill="url(#ht-o)"/>
+      <circle cx="0" cy="365" r="108" fill="url(#ht-o)"/><circle cx="-365" cy="0" r="108" fill="url(#ht-o)"/>
+    </g>
+    <g fill="url(#ht-n)" stroke="#2f3f86" stroke-width="16" transform="translate(9 7)" style="mix-blend-mode:multiply">
+      <circle cx="0" cy="0" r="108"/><circle cx="258" cy="-258" r="108"/><circle cx="258" cy="258" r="108"/>
+      <circle cx="-258" cy="258" r="108"/><circle cx="-258" cy="-258" r="108"/>
+      <circle cx="0" cy="-365" r="108" fill="none"/><circle cx="365" cy="0" r="108" fill="none"/>
+      <circle cx="0" cy="365" r="108" fill="none"/><circle cx="-365" cy="0" r="108" fill="none"/>
+    </g>
+  </svg>
+
+  <header class="mast">
+    <div>
+      <p class="eyebrow">chipbagger.fun · how it works</p>
+      <h1><span class="mis" aria-hidden="true">Chip Bagger</span>Chip Bagger<span class="line2">from bag to pin</span></h1>
+      <p class="lede">A potato chip bag collection with <b>no server of its own</b>. GitHub Pages hands out static files, Firebase keeps the bags and photos, and a set of security rules seals the two together: anyone can look, only the collector can write.</p>
+    </div>
+    <div class="stamp" aria-label="Firebase project and SDK version">
+      <b>170 bags</b>
+      project chipbagger-abdd3<br>
+      firebase js sdk 12.19.0<br>
+      build steps: 0
+    </div>
+  </header>
+
+  <div class="legend" aria-label="Legend">
+    <span><svg width="46" height="12" aria-hidden="true"><line x1="2" y1="6" x2="44" y2="6" stroke="#2f3f86" stroke-width="3"/></svg> Reading: a visitor browses</span>
+    <span><svg width="46" height="12" aria-hidden="true"><line x1="2" y1="6" x2="44" y2="6" stroke="#f4a641" stroke-width="6"/></svg> Writing: the collector adds or rates a bag</span>
+    <span><svg width="46" height="12" aria-hidden="true"><line x1="2" y1="6" x2="44" y2="6" stroke="#2f3f86" stroke-width="2" stroke-dasharray="6 5"/></svg> Operating: one-off scripts</span>
+    <span><svg width="46" height="12" aria-hidden="true"><rect x="4" y="0" width="38" height="12" fill="url(#seal-leg)"/><defs><pattern id="seal-leg" width="5" height="12" patternUnits="userSpaceOnUse"><rect width="5" height="12" fill="#f4a641"/><line x1="1" y1="0" x2="1" y2="12" stroke="#2f3f86" stroke-width="1"/></pattern></defs></svg> The seal: security rules</span>
+    <span class="hint">numbers match the steps below</span>
+  </div>
+
+  <div class="diagram-wrap">
+  <svg class="diagram" viewBox="0 0 1400 945" role="img" aria-labelledby="dg-title dg-desc">
+    <title id="dg-title">Chip Bagger architecture</title>
+    <desc id="dg-desc">Visitors load static files from GitHub Pages and read active bags and photos from Firebase. The collector uses an installable admin page on a phone to sign in with Google, resize photos and write bags. Security rules, drawn as a crimped bag seal, sit in front of Firestore and Storage. One-off scripts on a laptop use the Admin SDK, which bypasses the rules.</desc>
+    <defs>
+      <pattern id="dots-n" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(15)"><circle cx="4.5" cy="4.5" r="1.15" fill="#2f3f86" opacity=".38"/></pattern>
+      <pattern id="dots-o" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)"><circle cx="4.5" cy="4.5" r="1.6" fill="#f4a641" opacity=".55"/></pattern>
+      <pattern id="dots-heavy" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="3" cy="3" r="1.9" fill="#2f3f86"/></pattern>
+      <pattern id="dots-orange" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-10)"><circle cx="3" cy="3" r="2.2" fill="#f4a641"/></pattern>
+      <pattern id="crimp" width="6" height="10" patternUnits="userSpaceOnUse"><rect width="6" height="10" fill="#f4a641"/><line x1="1.5" y1="0" x2="1.5" y2="10" stroke="#2f3f86" stroke-width="1.2"/></pattern>
+      <marker id="ah-n" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2f3f86"/></marker>
+      <marker id="ah-o" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4.2" markerHeight="4.2" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#e8902a"/></marker>
+      <filter id="rough" x="-2%" y="-2%" width="104%" height="104%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>
+    </defs>
+
+    <!-- ================= ZONES ================= -->
+    <!-- people -->
+    <rect x="30" y="140" width="220" height="790" rx="4" fill="none" stroke="#2f3f86" stroke-width="1.5" stroke-dasharray="2 6" stroke-linecap="round"/>
+    <text x="46" y="166" class="mono" font-size="11" letter-spacing="1.6" font-weight="600" fill="#2f3f86">PEOPLE</text>
+
+    <!-- github pages -->
+    <rect x="280" y="140" width="500" height="650" fill="url(#dots-n)"/>
+    <rect x="280" y="140" width="500" height="650" fill="none" stroke="#2f3f86" stroke-width="2"/>
+    <text x="296" y="164" class="mono" font-size="11" letter-spacing="1.6" font-weight="600" fill="#2f3f86">GITHUB PAGES</text>
+    <text x="414" y="164" font-size="12" fill="#59618a">chipbagger.fun · static files, served as-is</text>
+
+    <!-- firebase -->
+    <rect x="860" y="140" width="515" height="680" fill="url(#dots-o)"/>
+    <rect x="860" y="140" width="515" height="680" fill="none" stroke="#2f3f86" stroke-width="2"/>
+    <text x="876" y="164" class="mono" font-size="11" letter-spacing="1.6" font-weight="600" fill="#2f3f86">FIREBASE</text>
+    <text x="960" y="164" font-size="12" fill="#59618a">project chipbagger-abdd3 · Blaze plan, $1 budget alert</text>
+
+    <!-- gstatic strip -->
+    <rect x="280" y="62" width="500" height="54" fill="#e2e5ec" stroke="#2f3f86" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="296" y="84" class="mono" font-size="11.5" font-weight="600" fill="#2f3f86">www.gstatic.com/firebasejs/12.19.0</text>
+    <text x="296" y="104" font-size="12.5">Firebase JS SDK, pulled in with import() by the site and the admin</text>
+
+    <!-- ================= PUBLIC SITE BOX ================= -->
+    <rect x="300" y="180" width="460" height="320" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2.5"/>
+    <text x="316" y="206" class="disp" font-size="21" fill="#2f3f86">Public site</text>
+    <text x="436" y="206" class="mono" font-size="11" fill="#59618a">/ · index.html</text>
+
+    <g font-size="12.5">
+      <text x="316" y="236" class="mono" font-size="10.5" fill="#2f3f86">css/style.css</text><text x="490" y="236">brand tokens, navy #334788 + orange</text>
+      <text x="316" y="257" class="mono" font-size="10.5" fill="#2f3f86">js/app.js</text><text x="490" y="257">loads data, pins bags, draws tabs</text>
+      <text x="316" y="278" class="mono" font-size="10.5" fill="#2f3f86">js/bags-source.js</text><text x="490" y="278">Firestore Lite reads, active only</text>
+      <text x="316" y="299" class="mono" font-size="10.5" fill="#2f3f86">js/analytics.js</text><text x="490" y="299">GA4, public host only</text>
+      <text x="316" y="320" class="mono" font-size="10.5" fill="#2f3f86">data/origins.json</text><text x="490" y="320">36 places, 38 brand → place rules</text>
+      <text x="316" y="341" class="mono" font-size="10.5" fill="#2f3f86">vendor/</text><text x="490" y="341">Leaflet + outlines, no map tiles</text>
+      <text x="316" y="362" class="mono" font-size="10.5" fill="#59618a">data/bags.csv, images/</text><text x="490" y="362" font-style="italic" fill="#59618a">fallback if Firebase isn’t set up</text>
+    </g>
+    <line x1="316" y1="378" x2="744" y2="378" stroke="#2f3f86" stroke-width="1" stroke-dasharray="1 3"/>
+
+    <!-- three tab cards -->
+    <g>
+      <!-- collection -->
+      <rect x="316" y="390" width="136" height="98" fill="#eceef2" stroke="#2f3f86" stroke-width="1.5"/>
+      <g fill="#2f3f86">
+        <rect x="330" y="400" width="18" height="24" rx="2"/><rect x="354" y="400" width="18" height="24" rx="2" fill="url(#dots-orange)" stroke="#2f3f86" stroke-width="1"/>
+        <rect x="378" y="400" width="18" height="24" rx="2"/><rect x="402" y="400" width="18" height="24" rx="2" fill="url(#dots-heavy)"/>
+        <rect x="426" y="400" width="14" height="24" rx="2" fill="#f4a641"/>
+        <rect x="330" y="428" width="18" height="10" rx="2" fill="url(#dots-heavy)"/><rect x="354" y="428" width="18" height="10" rx="2"/>
+        <rect x="378" y="428" width="18" height="10" rx="2" fill="#f4a641"/><rect x="402" y="428" width="18" height="10" rx="2"/>
+      </g>
+      <text x="330" y="462" class="disp" font-size="15" fill="#2f3f86">Collection</text>
+      <text x="330" y="478" class="mono" font-size="9" fill="#59618a">search · filter</text>
+
+      <!-- leaderboard -->
+      <rect x="462" y="390" width="136" height="98" fill="#eceef2" stroke="#2f3f86" stroke-width="1.5"/>
+      <g>
+        <text x="474" y="410" class="mono" font-size="9" fill="#2f3f86">1</text><rect x="486" y="402" width="96" height="9" fill="#2f3f86"/>
+        <text x="474" y="425" class="mono" font-size="9" fill="#2f3f86">2</text><rect x="486" y="417" width="80" height="9" fill="#f4a641"/>
+        <text x="474" y="440" class="mono" font-size="9" fill="#2f3f86">3</text><rect x="486" y="432" width="64" height="9" fill="url(#dots-heavy)"/>
+      </g>
+      <text x="476" y="462" class="disp" font-size="15" fill="#2f3f86">Leaderboard</text>
+      <text x="476" y="478" class="mono" font-size="9" fill="#59618a">overall=(O+C)÷2</text>
+
+      <!-- chip map -->
+      <rect x="608" y="390" width="136" height="98" fill="#eceef2" stroke="#2f3f86" stroke-width="1.5"/>
+      <path d="M618 420 q14 -14 32 -8 q14 6 26 -2 q16 -8 30 2 q14 8 28 0 v26 q-16 6 -30 -2 q-14 -6 -28 2 q-16 6 -30 -2 q-14 -6 -28 4 z" fill="#ffffff" stroke="#9aa6cc" stroke-width="1"/>
+      <g stroke="#2f3f86" stroke-width="2" fill="#f4a641">
+        <circle cx="646" cy="424" r="9"/><circle cx="676" cy="430" r="5"/><circle cx="702" cy="420" r="12"/><circle cx="726" cy="434" r="4"/>
+      </g>
+      <text x="622" y="462" class="disp" font-size="15" fill="#2f3f86">Chip Map</text>
+      <text x="622" y="478" class="mono" font-size="9" fill="#59618a">r = 6+16√(n/max)</text>
+    </g>
+
+    <!-- ================= ADMIN BOX ================= -->
+    <rect x="300" y="540" width="460" height="230" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2.5"/>
+    <rect x="300" y="540" width="460" height="6" fill="#f4a641"/>
+    <text x="316" y="572" class="disp" font-size="21" fill="#2f3f86">Admin</text>
+    <text x="392" y="572" class="mono" font-size="11" fill="#59618a">/admin/ · installable app · noindex</text>
+    <g font-size="12.5">
+      <text x="316" y="600" class="mono" font-size="10.5" fill="#2f3f86">admin.js</text><text x="420" y="600">sign in, add, edit, rate, soft-delete</text>
+      <text x="316" y="621" class="mono" font-size="10.5" fill="#2f3f86">sw.js</text><text x="420" y="621">caches the shell; never Firebase calls</text>
+      <text x="316" y="642" class="mono" font-size="10.5" fill="#2f3f86">&lt;canvas&gt;</text><text x="420" y="642">1200px photo + 360px thumb, no EXIF</text>
+      <text x="316" y="663" class="mono" font-size="10.5" fill="#2f3f86">manifest</text><text x="420" y="663">launches full-screen from its icon</text>
+    </g>
+    <!-- rating sliders -->
+    <g>
+      <text x="316" y="708" font-size="12" font-weight="600" fill="#2f3f86">Originality</text>
+      <line x1="420" y1="704" x2="700" y2="704" stroke="#b9bfd3" stroke-width="6" stroke-linecap="round"/>
+      <line x1="420" y1="704" x2="637.8" y2="704" stroke="#2f3f86" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="637.8" cy="704" r="8" fill="#eceef2" stroke="#2f3f86" stroke-width="3"/>
+      <text x="716" y="708" class="mono" font-size="11" font-weight="600" fill="#2f3f86">8</text>
+
+      <text x="316" y="738" font-size="12" font-weight="600" fill="#2f3f86">Curb appeal</text>
+      <line x1="420" y1="734" x2="700" y2="734" stroke="#b9bfd3" stroke-width="6" stroke-linecap="round"/>
+      <line x1="420" y1="734" x2="575.6" y2="734" stroke="#f4a641" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="575.6" cy="734" r="8" fill="#eceef2" stroke="#2f3f86" stroke-width="3"/>
+      <text x="716" y="738" class="mono" font-size="11" font-weight="600" fill="#2f3f86">6</text>
+      <text x="420" y="758" class="mono" font-size="9" fill="#59618a">scale 1–10 · Save &amp; next → next unrated</text>
+    </g>
+
+    <!-- ================= SCRIPTS + NOMINATIM ================= -->
+    <rect x="280" y="812" width="320" height="92" fill="#f6f7f9" stroke="#2f3f86" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="296" y="834" class="disp" font-size="16" fill="#2f3f86">scripts/</text>
+    <text x="370" y="834" class="mono" font-size="9.5" fill="#59618a">Node 20, run by hand</text>
+    <g font-size="11.5">
+      <text x="296" y="856" class="mono" font-size="9.5" fill="#2f3f86">migrate.mjs</text><text x="446" y="856">CSV + photos → Firebase</text>
+      <text x="296" y="874" class="mono" font-size="9.5" fill="#2f3f86">grant-admin.mjs</text><text x="446" y="874">sets the admin claim</text>
+      <text x="296" y="892" class="mono" font-size="9.5" fill="#2f3f86">rename-originality.mjs</text><text x="446" y="892">one-time field rename</text>
+    </g>
+
+    <rect x="620" y="812" width="160" height="92" fill="#e2e5ec" stroke="#2f3f86" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="634" y="836" font-size="13" font-weight="800" fill="#2f3f86">OpenStreetMap</text>
+    <text x="634" y="853" font-size="13" font-weight="800" fill="#2f3f86">Nominatim</text>
+    <text x="634" y="873" class="mono" font-size="9" fill="#59618a">city, state, country</text>
+    <text x="634" y="889" class="mono" font-size="9" fill="#59618a">→ lat, lng</text>
+
+    <!-- ================= FIREBASE SERVICES ================= -->
+    <!-- analytics -->
+    <rect x="940" y="180" width="390" height="46" fill="#f6f7f9" stroke="#2f3f86" stroke-width="1.5"/>
+    <text x="956" y="202" font-size="14" font-weight="800" fill="#2f3f86">Analytics</text>
+    <text x="1032" y="202" class="mono" font-size="10" fill="#59618a">GA4 · G-M52XLG6KLK</text>
+    <text x="956" y="218" font-size="11.5">page views from chipbagger.fun, never localhost or /admin</text>
+
+    <!-- firestore -->
+    <rect x="940" y="245" width="390" height="175" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2.5"/>
+    <text x="956" y="271" class="disp" font-size="21" fill="#2f3f86">Firestore</text>
+    <text x="1062" y="271" class="mono" font-size="10" fill="#59618a">one document per bag</text>
+    <g class="mono" font-size="10.5">
+      <text x="956" y="296" font-weight="600" fill="#2f3f86">bags/{id}</text>
+      <text x="972" y="313">brand · flavor · notes · made_in</text>
+      <text x="972" y="329">originality · curb_appeal <tspan fill="#a85d06">1–10</tspan></text>
+      <text x="972" y="345">photoUrl · thumbUrl · photoPath</text>
+      <text x="972" y="361">active · createdAt · deletedAt</text>
+      <text x="956" y="386" font-weight="600" fill="#2f3f86">places/{key}</text>
+      <text x="972" y="403">name · country · lat · lng</text>
+    </g>
+
+    <!-- storage -->
+    <rect x="940" y="440" width="390" height="105" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2.5"/>
+    <text x="956" y="465" class="disp" font-size="21" fill="#2f3f86">Storage</text>
+    <g class="mono" font-size="10.5">
+      <text x="956" y="489">bags/{id}-{stamp}.jpg</text><text x="1196" y="489" fill="#a85d06">1200px q.85</text>
+      <text x="956" y="507">thumbs/{id}-{stamp}.jpg</text><text x="1196" y="507" fill="#a85d06">360px q.78</text>
+    </g>
+    <text x="956" y="530" font-size="11.5" fill="#59618a">cached for a year, immutable · images only, under 10 MB</text>
+
+    <!-- auth -->
+    <rect x="940" y="608" width="390" height="98" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2.5"/>
+    <text x="956" y="634" class="disp" font-size="21" fill="#2f3f86">Auth</text>
+    <text x="1012" y="634" class="mono" font-size="10" fill="#59618a">Google sign-in</text>
+    <text x="956" y="658" class="mono" font-size="10.5">custom claim <tspan font-weight="600" fill="#2f3f86">admin: true</tspan></text>
+    <text x="956" y="676" font-size="11.5">set only by grant-admin.mjs; the rules check it</text>
+    <text x="956" y="693" font-size="11.5" fill="#59618a">authorized domains: chipbagger.fun, dan-logan.github.io</text>
+
+    <!-- emulators note -->
+    <text x="940" y="752" class="mono" font-size="9.5" fill="#59618a">local: ?emulators → auth :9099 · firestore :8080 · storage :9199</text>
+    <text x="940" y="770" class="mono" font-size="9.5" fill="#59618a">project demo-chipbagger, nothing touches production</text>
+
+    <!-- ================= FLOWS (drawn under the seal) ================= -->
+    <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+      <!-- READ -->
+      <path id="r1" d="M206 330 H298" stroke="#2f3f86" stroke-width="3" marker-end="url(#ah-n)"/>
+      <path id="r2" d="M720 180 V118" stroke="#2f3f86" stroke-width="3" marker-end="url(#ah-n)"/>
+      <path id="r3" d="M760 275 H938" stroke="#2f3f86" stroke-width="3" marker-end="url(#ah-n)"/>
+      <path id="r4" d="M760 470 H938" stroke="#2f3f86" stroke-width="3" marker-end="url(#ah-n)"/>
+      <path d="M760 203 H938" stroke="#2f3f86" stroke-width="2" stroke-dasharray="1 5" marker-end="url(#ah-n)"/>
+
+      <!-- WRITE (multiply so crossings print darker, like two inks) -->
+      <g style="mix-blend-mode:multiply">
+        <path id="w1" d="M206 655 H298" stroke="#f4a641" stroke-width="6" marker-end="url(#ah-o)"/>
+        <path id="w2" d="M760 655 H936" stroke="#f4a641" stroke-width="6" marker-end="url(#ah-o)"/>
+        <path id="w6" d="M760 560 H820 V380 H936" stroke="#f4a641" stroke-width="6" marker-end="url(#ah-o)"/>
+        <path id="w5" d="M760 585 H845 V520 H936" stroke="#f4a641" stroke-width="6" marker-end="url(#ah-o)"/>
+        <path id="w3" d="M700 770 V810" stroke="#f4a641" stroke-width="6" marker-end="url(#ah-o)"/>
+      </g>
+
+      <!-- OPS: Admin SDK comes in the back door -->
+      <path d="M206 858 H278" stroke="#2f3f86" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ah-n)"/>
+      <path id="o1" d="M440 904 V924 H1356 V330" stroke="#2f3f86" stroke-width="2" stroke-dasharray="6 5"/>
+      <path d="M1356 330 H1332" stroke="#2f3f86" stroke-width="2" marker-end="url(#ah-n)"/>
+      <path d="M1356 494 H1332" stroke="#2f3f86" stroke-width="2" marker-end="url(#ah-n)"/>
+      <path d="M1356 660 H1332" stroke="#2f3f86" stroke-width="2" marker-end="url(#ah-n)"/>
+    </g>
+
+    <!-- flow labels -->
+    <g font-size="11" fill="#2f3f86">
+      <text x="770" y="196" class="mono" font-size="9.5" fill="#59618a">GA4 hit</text>
+      <text x="770" y="296" class="mono" font-size="9.5">bags · places</text>
+      <text x="770" y="491" class="mono" font-size="9.5">photos</text>
+      <text x="732" y="134" class="mono" font-size="9.5">import()</text>
+      <text x="216" y="322" class="mono" font-size="9.5">GET</text>
+      <text x="770" y="648" class="mono" font-size="9.5" fill="#a85d06">popup</text>
+      <text x="610" y="938" class="mono" font-size="10" fill="#2f3f86">Admin SDK + service-account key · comes in the back, so the rules don’t apply</text>
+    </g>
+
+    <!-- ================= THE SEAL (security rules) ================= -->
+    <g>
+      <path d="M884 245 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 l6 6 l-6 6 V545 H916 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 l6 -6 l-6 -6 V245 Z"
+            fill="url(#crimp)" stroke="#2f3f86" stroke-width="1.5" opacity=".93" filter="url(#rough)"/>
+      <rect x="891" y="288" width="18" height="84" fill="#eceef2" opacity=".95"/>
+      <text transform="translate(904 330) rotate(-90)" text-anchor="middle" class="mono" font-size="10" font-weight="600" letter-spacing="1.4" fill="#2f3f86">THE SEAL</text>
+    </g>
+    <!-- lines re-drawn on top so they visibly pass through the seal -->
+    <g fill="none" stroke-linecap="round">
+      <path d="M876 275 H924" stroke="#2f3f86" stroke-width="3"/>
+      <path d="M876 470 H924" stroke="#2f3f86" stroke-width="3"/>
+      <path d="M876 380 H924" stroke="#f4a641" stroke-width="6" style="mix-blend-mode:multiply"/>
+      <path d="M876 520 H924" stroke="#f4a641" stroke-width="6" style="mix-blend-mode:multiply"/>
+    </g>
+    <text x="870" y="567" font-size="11.5" fill="#1d2858">The seal is firestore.rules + storage.rules. Anyone reads active bags.</text>
+    <text x="870" y="583" font-size="11.5" fill="#1d2858">Writes need the admin claim and a valid bag. No hard deletes.</text>
+
+  <!-- ink tracers (hidden for reduced motion) -->
+    <g class="tracer">
+      <circle r="4.5" fill="#1d2858"><animateMotion dur="2.2s" begin="0s" repeatCount="indefinite"><mpath href="#r1"/></animateMotion></circle>
+      <circle r="4.5" fill="#1d2858"><animateMotion dur="1.6s" begin="0.4s" repeatCount="indefinite"><mpath href="#r2"/></animateMotion></circle>
+      <circle r="4.5" fill="#1d2858"><animateMotion dur="2.4s" begin="0.8s" repeatCount="indefinite"><mpath href="#r3"/></animateMotion></circle>
+      <circle r="4.5" fill="#1d2858"><animateMotion dur="2.4s" begin="1.6s" repeatCount="indefinite"><mpath href="#r4"/></animateMotion></circle>
+      <circle r="5.5" fill="#f4a641" stroke="#1d2858" stroke-width="1.5"><animateMotion dur="2.2s" begin="0.2s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+      <circle r="5.5" fill="#f4a641" stroke="#1d2858" stroke-width="1.5"><animateMotion dur="2.4s" begin="1s" repeatCount="indefinite"><mpath href="#w2"/></animateMotion></circle>
+      <circle r="5.5" fill="#f4a641" stroke="#1d2858" stroke-width="1.5"><animateMotion dur="1.4s" begin="0.6s" repeatCount="indefinite"><mpath href="#w3"/></animateMotion></circle>
+      <circle r="5.5" fill="#f4a641" stroke="#1d2858" stroke-width="1.5"><animateMotion dur="2.2s" begin="1.4s" repeatCount="indefinite"><mpath href="#w5"/></animateMotion></circle>
+      <circle r="5.5" fill="#f4a641" stroke="#1d2858" stroke-width="1.5"><animateMotion dur="3s" begin="0s" repeatCount="indefinite"><mpath href="#w6"/></animateMotion></circle>
+      <rect x="-4" y="-4" width="8" height="8" fill="#1d2858"><animateMotion dur="7s" repeatCount="indefinite"><mpath href="#o1"/></animateMotion></rect>
+    </g>
+    <!-- ================= PEOPLE ================= -->
+    <!-- visitor -->
+    <g transform="translate(140 320)">
+      <g transform="translate(4 3)" fill="#f4a641" style="mix-blend-mode:multiply"><circle cx="0" cy="-34" r="20"/><path d="M-38 30 q0 -42 38 -42 q38 0 38 42 z"/></g>
+      <g fill="url(#dots-heavy)" stroke="#2f3f86" stroke-width="2.5"><circle cx="0" cy="-34" r="20"/><path d="M-38 30 q0 -42 38 -42 q38 0 38 42 z"/></g>
+    </g>
+    <text x="140" y="378" text-anchor="middle" class="disp" font-size="19" fill="#2f3f86">Visitor</text>
+    <text x="140" y="396" text-anchor="middle" font-size="12" fill="#59618a">any browser, no sign-in</text>
+
+    <!-- collector with phone -->
+    <g transform="translate(130 645)">
+      <g transform="translate(4 3)" fill="#f4a641" style="mix-blend-mode:multiply"><circle cx="0" cy="-34" r="20"/><path d="M-38 30 q0 -42 38 -42 q38 0 38 42 z"/></g>
+      <g fill="url(#dots-heavy)" stroke="#2f3f86" stroke-width="2.5"><circle cx="0" cy="-34" r="20"/><path d="M-38 30 q0 -42 38 -42 q38 0 38 42 z"/></g>
+      <rect x="30" y="-22" width="26" height="44" rx="5" fill="#eceef2" stroke="#2f3f86" stroke-width="2.5"/>
+      <rect x="35" y="-15" width="16" height="22" fill="#f4a641"/>
+      <circle cx="43" cy="15" r="2" fill="#2f3f86"/>
+    </g>
+    <text x="140" y="703" text-anchor="middle" class="disp" font-size="19" fill="#2f3f86">The collector</text>
+    <text x="140" y="721" text-anchor="middle" font-size="12" fill="#59618a">Dan, on a phone, via the</text>
+    <text x="140" y="736" text-anchor="middle" font-size="12" fill="#59618a">installed admin app</text>
+
+    <!-- laptop -->
+    <g transform="translate(140 846)">
+      <rect x="-40" y="-26" width="80" height="50" rx="4" fill="url(#dots-heavy)" stroke="#2f3f86" stroke-width="2.5"/>
+      <rect x="-32" y="-19" width="64" height="36" fill="#eceef2"/>
+      <text x="-26" y="-4" class="mono" font-size="8" fill="#2f3f86">$ node</text>
+      <text x="-26" y="8" class="mono" font-size="8" fill="#a85d06">migrate</text>
+      <path d="M-52 24 H52 l-6 8 H-46 z" fill="#f4a641" stroke="#2f3f86" stroke-width="2.5" stroke-linejoin="round"/>
+    </g>
+    <text x="140" y="900" text-anchor="middle" font-size="12" font-weight="800" fill="#2f3f86">Dan’s laptop</text>
+    <text x="140" y="916" text-anchor="middle" font-size="11.5" fill="#59618a">key kept out of the repo</text>
+
+    <!-- ================= STEP MARKERS ================= -->
+    <g class="mono" font-size="11" font-weight="600" text-anchor="middle">
+      <!-- read -->
+      <g fill="#2f3f86"><circle cx="262" cy="330" r="11"/><circle cx="720" cy="150" r="11"/><circle cx="790" cy="275" r="11"/><circle cx="790" cy="470" r="11"/><circle cx="300" cy="438" r="11"/></g>
+      <g fill="#eceef2"><text x="262" y="334">1</text><text x="720" y="154">2</text><text x="790" y="279">3</text><text x="790" y="474">4</text><text x="300" y="442">5</text></g>
+      <!-- write -->
+      <g fill="#f4a641" stroke="#2f3f86" stroke-width="1.5"><circle cx="262" cy="655" r="11"/><circle cx="850" cy="655" r="11"/><circle cx="700" cy="790" r="11"/><circle cx="300" cy="638" r="11"/><circle cx="845" cy="550" r="11"/><circle cx="820" cy="430" r="11"/></g>
+      <g fill="#1d2858"><text x="262" y="659">1</text><text x="850" y="659">2</text><text x="700" y="794">3</text><text x="300" y="642">4</text><text x="845" y="554">5</text><text x="820" y="434">6</text></g>
+      <!-- ops -->
+      <g fill="#eceef2" stroke="#2f3f86" stroke-width="1.5" stroke-dasharray="3 2"><circle cx="1356" cy="610" r="11"/><circle cx="1356" cy="410" r="11"/></g>
+      <g fill="#2f3f86"><text x="1356" y="614">A</text><text x="1356" y="414">B</text></g>
+    </g>
+  </svg>
+  </div>
+  <p class="scroll-hint">← drag sideways to see the whole diagram →</p>
+
+  <!-- ================= STEPS ================= -->
+  <section class="paths" aria-label="The three paths">
+    <div class="path">
+      <h2>Reading</h2>
+      <p class="who">A visitor opens chipbagger.fun</p>
+      <ol>
+        <li><span class="num r">1</span><span>GitHub Pages serves the files exactly as they sit in the repo: HTML, CSS, scripts, Leaflet, the map outlines and <code>data/origins.json</code>. There is no build step and no server code.</span></li>
+        <li><span class="num r">2</span><span><code>bags-source.js</code> imports Firestore Lite from gstatic as an ES module, only when the page needs data.</span></li>
+        <li><span class="num r">3</span><span>It asks for bags <code>where active == true</code>, plus any places added from the admin. The rules let anyone read those and refuse deleted bags.</span></li>
+        <li><span class="num r">4</span><span>Photos load straight from the Storage URLs saved on each bag. A missing thumbnail falls back to the full photo, then to a 🥔 placeholder.</span></li>
+        <li><span class="num r">5</span><span><code>app.js</code> gives every bag a place, then draws the three tabs. The map uses bundled country and state outlines, so it needs no tile server and no API key.</span></li>
+      </ol>
+      <p class="aside">If <code>js/firebase-config.js</code> has no project ID, steps 2–4 are replaced by <code>data/bags.csv</code> and the photos in <code>images/</code>.</p>
+    </div>
+
+    <div class="path">
+      <h2>Writing</h2>
+      <p class="who">The collector adds or rates a bag</p>
+      <ol>
+        <li><span class="num w">1</span><span>Open <code>/admin/</code> from the home-screen icon. <code>sw.js</code> keeps the page shell available offline and lets every Firebase request go straight to the network.</span></li>
+        <li><span class="num w">2</span><span>Sign in with Google. The page refreshes the ID token and looks for <code>admin: true</code>. Any other account sees “No access” and no setup hints.</span></li>
+        <li><span class="num w">3</span><span>When a bag comes from somewhere new, Nominatim turns city, state and country into coordinates, and the place is saved to <code>places/{key}</code>.</span></li>
+        <li><span class="num w">4</span><span>The photo is drawn onto a canvas and re-encoded twice: 1200px and 360px JPEGs. Canvas output carries no EXIF, so the phone’s GPS location never leaves it.</span></li>
+        <li><span class="num w">5</span><span>Both files upload to Storage under <code>bags/</code> and <code>thumbs/</code>. When a photo is replaced, the old files are removed afterwards.</span></li>
+        <li><span class="num w">6</span><span>The bag document is written. The rules check the admin claim, the allowed fields, text lengths and 1–10 scores. <b>Save &amp; next</b> opens the next unrated bag; <b>Delete</b> only sets <code>active</code> to false.</span></li>
+      </ol>
+    </div>
+
+    <div class="path">
+      <h2>Operating</h2>
+      <p class="who">One-off jobs from Dan’s laptop</p>
+      <ol>
+        <li><span class="num o">A</span><span><code>grant-admin.mjs</code> puts the <code>admin</code> claim on a Google account that has signed in once. This is the only way to become an admin.</span></li>
+        <li><span class="num o">B</span><span><code>migrate.mjs</code> copied the 170 bags in <code>bags.csv</code> into Firestore and their photos into Storage, resized with sharp and stripped of EXIF. It skips bags already there, so it is safe to re-run. <code>rename-originality.mjs</code> moved the old <code>collectability</code> score to <code>originality</code>.</span></li>
+      </ol>
+      <p class="aside">These scripts use the Admin SDK and a service-account key, which bypass the rules entirely. That is why the key lives outside the repo. For testing, the same scripts and both pages run against local Firebase emulators.</p>
+    </div>
+  </section>
+
+  <!-- ================= LOWER: pin logic + facts ================= -->
+  <section class="lower">
+    <div>
+      <h2>How a bag finds its pin</h2>
+      <p class="sub">Every bag on the Chip Map is placed by <code>placeFor()</code> in <code>app.js</code>. Brand locations are each company’s home base or main plant, not necessarily the plant printed on the bag.</p>
+      <svg class="pinflow" viewBox="0 0 720 300" role="img" aria-label="Decision flow: a bag uses its Made in place if set. Otherwise its brand's place from origins.json, switched by a byNote word in the notes or flavor. A bag whose brand has no entry is listed under Origin unknown.">
+        <defs>
+          <marker id="pf-a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#2f3f86"/></marker>
+          <pattern id="pf-dots" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="3" cy="3" r="1.9" fill="#2f3f86"/></pattern>
+        </defs>
+        <!-- bag -->
+        <path d="M14 34 l6 -6 l6 6 l6 -6 l6 6 l6 -6 l6 6 l6 -6 l6 6 l6 -6 l6 6 V118 l-6 6 l-6 -6 l-6 6 l-6 -6 l-6 6 l-6 -6 l-6 6 l-6 -6 l-6 6 l-6 -6 Z" fill="#f4a641" stroke="#2f3f86" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="24" y="56" width="56" height="34" fill="#eceef2" stroke="#2f3f86" stroke-width="1.5"/>
+        <text x="52" y="77" text-anchor="middle" font-size="13" font-weight="800" fill="#2f3f86">a bag</text>
+
+        <g fill="none" stroke="#2f3f86" stroke-width="2.5" stroke-linejoin="round">
+          <path d="M96 76 H146" marker-end="url(#pf-a)"/>
+          <path d="M290 76 H366" marker-end="url(#pf-a)"/>
+          <path d="M218 112 V164" marker-end="url(#pf-a)"/>
+          <path d="M290 200 H366" marker-end="url(#pf-a)"/>
+          <path d="M218 236 V262 H366" marker-end="url(#pf-a)"/>
+          <path d="M498 236 V262 H560" marker-end="url(#pf-a)"/>
+                    <path d="M562 200 H630 V112" marker-end="url(#pf-a)"/>
+        </g>
+
+        <!-- questions -->
+        <g>
+          <rect x="148" y="42" width="140" height="68" rx="34" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2"/>
+          <text x="218" y="72" text-anchor="middle" font-size="13" font-weight="800">Made in set?</text>
+          <text x="218" y="90" text-anchor="middle" class="mono" font-size="9.5" fill="#59618a">bag.made_in</text>
+
+          <rect x="148" y="166" width="140" height="68" rx="34" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2"/>
+          <text x="218" y="196" text-anchor="middle" font-size="13" font-weight="800">Brand listed?</text>
+          <text x="218" y="214" text-anchor="middle" class="mono" font-size="9.5" fill="#59618a">origins.json brands</text>
+
+          <rect x="368" y="166" width="194" height="68" rx="34" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2"/>
+          <text x="465" y="194" text-anchor="middle" font-size="13" font-weight="800">Notes name a byNote word?</text>
+          <text x="465" y="212" text-anchor="middle" class="mono" font-size="9.5" fill="#59618a">Lay’s + “Taiwan” → Taipei</text>
+        </g>
+
+        <!-- outcomes -->
+        <g>
+          <rect x="368" y="42" width="194" height="68" fill="url(#pf-dots)" opacity=".18"/>
+          <rect x="368" y="42" width="194" height="68" fill="none" stroke="#2f3f86" stroke-width="2"/>
+          <text x="384" y="70" font-size="13" font-weight="800" fill="#2f3f86">That place</text>
+          <text x="384" y="90" class="mono" font-size="9.5" fill="#59618a">places[made_in]</text>
+
+          <circle cx="630" cy="76" r="34" fill="#f4a641" stroke="#2f3f86" stroke-width="3"/>
+          <circle cx="630" cy="76" r="18" fill="none" stroke="#2f3f86" stroke-width="2"/>
+          <text x="630" y="80" text-anchor="middle" class="mono" font-size="10" font-weight="600" fill="#1d2858">pin</text>
+          <path d="M562 76 H594" fill="none" stroke="#2f3f86" stroke-width="2.5" marker-end="url(#pf-a)"/>
+
+          <rect x="368" y="246" width="120" height="36" fill="#e2e5ec" stroke="#2f3f86" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="380" y="268" font-size="12.5" font-weight="600" fill="#59618a">Origin unknown</text>
+
+          <rect x="562" y="246" width="140" height="36" fill="#f6f7f9" stroke="#2f3f86" stroke-width="2"/>
+          <text x="574" y="268" font-size="12.5" font-weight="600" fill="#2f3f86">brand’s home place</text>
+          <path d="M702 264 H712 V112 H646" fill="none" stroke="#2f3f86" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#pf-a)"/>
+        </g>
+
+        <!-- yes/no labels -->
+        <g class="mono" font-size="10" font-weight="600" fill="#a85d06">
+          <text x="306" y="69">yes</text>
+          <text x="226" y="144">no</text>
+          <text x="306" y="193">yes</text>
+          <text x="226" y="256">no</text>
+          <text x="506" y="256">no</text>
+          <text x="572" y="193">yes</text>
+        </g>
+        <text x="490" y="22" class="mono" font-size="9.5" fill="#59618a">pin size r = 6 + 16√(n / max)</text>
+      </svg>
+    </div>
+
+    <aside class="facts" aria-label="Architecture facts">
+      <h3>Architecture Facts</h3>
+      <p class="serv">Serving size <b>1 static site</b><br>Servers per container <b>0</b></p>
+      <dl>
+        <div class="row thick"><dt>Bags <span>in the collection</span></dt><dd>170</dd></div>
+        <div class="row"><dt>Build steps</dt><dd>0</dd></div>
+        <div class="row"><dt>Map tile servers</dt><dd>0</dd></div>
+        <div class="row"><dt>Bundled places</dt><dd>36</dd></div>
+        <div class="row ind"><dt>Brand rules</dt><dd>38</dd></div>
+        <div class="row"><dt>Photo</dt><dd>1200px · q 0.85</dd></div>
+        <div class="row ind"><dt>Thumbnail</dt><dd>360px · q 0.78</dd></div>
+        <div class="row ind"><dt>EXIF / GPS kept</dt><dd>0%</dd></div>
+        <div class="row"><dt>Score scale</dt><dd>1–10</dd></div>
+        <div class="row ind"><dt>Overall</dt><dd>(O + C) ÷ 2</dd></div>
+        <div class="row ind"><dt>Top brands need</dt><dd>2+ rated bags</dd></div>
+        <div class="row"><dt>Hard deletes</dt><dd>0%</dd></div>
+        <div class="row thick"><dt>Admins</dt><dd>claim only</dd></div>
+      </dl>
+      <p class="foot">Firebase config values are public by design; the rules decide who reads and writes. Billing alert set at $1.</p>
+    </aside>
+  </section>
+
+  <footer class="colophon">
+    <span>Chip Bagger · @chip.bagger · drawn from the dan-logan/chipbagger repository</span>
+    <span>Two inks: navy #334788 · orange #f4a641</span>
+  </footer>
+</div>
