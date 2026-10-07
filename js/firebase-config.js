@@ -7,6 +7,7 @@ export const firebaseConfig = {
   projectId: 'chipbagger-abdd3',
   storageBucket: 'chipbagger-abdd3.firebasestorage.app',
   appId: '1:235890812246:web:2cc0d3e12a55d2e9fa62f7',
+  measurementId: 'G-M52XLG6KLK',
 };
 
 export const SDK_URL = 'https://www.gstatic.com/firebasejs/12.19.0';

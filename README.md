@@ -38,13 +38,13 @@ The admin is an installable app (PWA). On the phone, open `/admin/` in Chrome an
 
 ### Firebase setup (one time)
 
-1. **Create the project.** [Firebase console](https://console.firebase.google.com/) → Add project → `chipbagger`. Analytics isn't needed.
+1. **Create the project.** [Firebase console](https://console.firebase.google.com/) → Add project → `chipbagger`. Enable Google Analytics if you want visitor stats; `js/analytics.js` sends them on the public site only (not locally or from `/admin`).
 2. **Upgrade to Blaze** (Storage requires it). Then in Google Cloud Billing → Budgets & alerts, add a budget of $1 so you get an email if it ever costs anything.
 3. **Authentication** → Get started → Sign-in method → enable **Google**. Under Settings → Authorized domains, add `chipbagger.fun` and `dan-logan.github.io`.
 4. **Firestore Database** → Create database → production mode → pick a US location.
 5. **Storage** → Get started → production mode, same location.
 6. **Rules.** Paste `firestore.rules` into Firestore → Rules and `storage.rules` into Storage → Rules, and publish both. (Or, with the Firebase CLI: `firebase deploy --only firestore:rules,storage --project <project-id>`.)
-7. **Web app config.** Project settings → General → Your apps → add a Web app (no hosting). Copy `apiKey`, `authDomain`, `projectId`, `storageBucket` and `appId` into `js/firebase-config.js` and commit.
+7. **Web app config.** Project settings → General → Your apps → add a Web app (no hosting). Copy `apiKey`, `authDomain`, `projectId`, `storageBucket`, `appId` and `measurementId` (click **Config** to see it) into `js/firebase-config.js` and commit.
 8. **Service-account key** (for the scripts, on your computer only). Project settings → Service accounts → Generate new private key. Keep the file outside the repo, and never commit it.
 9. **Import the existing bags** (needs Node 20+):
    ```sh
