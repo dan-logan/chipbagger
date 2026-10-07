@@ -18,14 +18,14 @@ service cloud.firestore {
     }
 
     function isValidBag(d) {
-      return d.keys().hasOnly(['brand', 'flavor', 'notes', 'made_in', 'collectability', 'curb_appeal',
+      return d.keys().hasOnly(['brand', 'flavor', 'notes', 'made_in', 'originality', 'curb_appeal',
                                'photoUrl', 'thumbUrl', 'photoPath', 'thumbPath',
                                'active', 'createdAt', 'updatedAt', 'deletedAt'])
         && isText(d.brand, 100) && d.brand.size() > 0
         && isText(d.flavor, 200)
         && isText(d.get('notes', ''), 1000)
         && isText(d.get('made_in', ''), 100)
-        && isScore(d.get('collectability', null))
+        && isScore(d.get('originality', null))
         && isScore(d.get('curb_appeal', null))
         && d.active is bool;
     }

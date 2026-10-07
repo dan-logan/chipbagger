@@ -38,7 +38,7 @@
   }
 
   function overall(bag) {
-    const a = bag.collectability, b = bag.curb_appeal;
+    const a = bag.originality, b = bag.curb_appeal;
     return a != null && b != null ? (a + b) / 2 : null;
   }
 
@@ -87,7 +87,7 @@
       flavor: row.flavor || '',
       notes: row.notes || '',
       made_in: row.made_in || '',
-      collectability: parseScore(row.collectability),
+      originality: parseScore(row.originality),
       curb_appeal: parseScore(row.curb_appeal),
     }));
     state.bags.forEach(b => { b.place = placeFor(b); });
@@ -151,7 +151,7 @@
     list.sort({
       added: (a, b) => b.order - a.order,
       brand: (a, b) => a.brand.localeCompare(b.brand) || a.flavor.localeCompare(b.flavor),
-      collectability: byScore('collectability'),
+      originality: byScore('originality'),
       curb: byScore('curb_appeal'),
     }[sort]);
 
@@ -163,7 +163,7 @@
         el('div', { class: 'card-flavor' }, bag.flavor),
         bag.notes ? el('div', { class: 'card-notes' }, bag.notes) : null,
         el('div', { class: 'card-scores' },
-          scorePill('Collect', bag.collectability, 'pill-collect'),
+          scorePill('Originality', bag.originality, 'pill-originality'),
           scorePill('Curb', bag.curb_appeal, 'pill-curb')),
       ))));
   }
@@ -180,7 +180,7 @@
           bag.notes ? el('p', { class: 'muted' }, bag.notes) : null,
           el('dl', { class: 'facts' },
             el('dt', {}, 'Made in'), el('dd', {}, bag.place ? bag.place.name : 'Unknown'),
-            el('dt', {}, 'Collectability'), el('dd', {}, scoreBar(bag.collectability, 'bar-collect')),
+            el('dt', {}, 'Originality'), el('dd', {}, scoreBar(bag.originality, 'bar-originality')),
             el('dt', {}, 'Curb appeal'), el('dd', {}, scoreBar(bag.curb_appeal, 'bar-curb')),
           ),
           scoreGuide(),
@@ -195,16 +195,18 @@
       el('p', {}, intro),
       items ? el('ul', {}, items.map(([label, text]) => el('li', {}, el('strong', {}, label + ': '), text))) : null);
     return el('details', { class: 'score-guide' },
-      el('summary', {}, 'What do Collectability and Curb Appeal mean?'),
+      el('summary', {}, 'What do Originality and Curb Appeal mean?'),
       term('Curb Appeal', 'Shelf presence: whether the bag grabs you from six feet away. It includes:', [
         ['Artistry', 'illustration, photography, overall visual craft.'],
         ['Typography & logo', 'lettering, wordmark, how well the type is handled.'],
         ['Color', 'palette strength and how well it signals the flavor.'],
         ['Back-of-bag', 'copy, brand story, extra art.'],
       ]),
-      term('Collectability', 'Rarity, whether regional or international, limited edition bags, and collabs like Rap Snacks or Wawa Hoagiefest. It also includes:', [
-        ['Originality', 'how distinct the bag is from the generic chip-bag look.'],
+      term('Originality', 'How much the bag stands apart from the generic chip-bag look. It includes:', [
+        ['Distinct identity', 'a look, concept, or brand voice you wouldn’t mistake for any other bag.'],
         ['Flavor naming', 'creativity of the name (“Mama Zuma’s Revenge” vs. “Original”).'],
+        ['Collabs & special editions', 'limited runs and crossovers like Rap Snacks or Wawa Hoagiefest, judged by how inventive they are rather than how scarce.'],
+        ['Regional character', 'a bag that clearly reflects where it’s from, whether a local or international market.'],
       ]));
   }
 
@@ -276,7 +278,7 @@
   }
 
   function renderLeaderboard() {
-    renderBoard($('#board-collectability'), 'collectability', b => b.collectability, 'bar-collect');
+    renderBoard($('#board-originality'), 'originality', b => b.originality, 'bar-originality');
     renderBoard($('#board-curb'), 'curb', b => b.curb_appeal, 'bar-curb');
     renderBoard($('#board-overall'), 'overall', overall, 'bar-overall');
     renderBrandBoard();

@@ -15,9 +15,9 @@
   --accent-strong: var(--navy);
   --on-accent: #ffffff;
   --highlight: var(--orange);
-  --collect: var(--navy);
+  --originality: var(--navy);
   --curb: var(--orange);
-  --on-collect: #ffffff;
+  --on-originality: #ffffff;
   --on-curb: #1c2340;
   --overall: #7b8cc8;
   --gold: #f4a641;
@@ -42,8 +42,8 @@
     --accent: #f4a641;
     --accent-strong: #f8bd6c;
     --on-accent: #1c2340;
-    --collect: #8fa2e6;
-    --on-collect: #10152b;
+    --originality: #8fa2e6;
+    --on-originality: #10152b;
     --on-curb: #1c2340;
     --overall: #b7c2ec;
     --map-water: #0d1226;
@@ -121,7 +121,7 @@ button { font: inherit; color: inherit; }
 .card-scores { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; flex-wrap: wrap; }
 .pill { font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: #fff; white-space: nowrap; }
 .pill-label { font-weight: 500; opacity: .9; }
-.pill-collect { background: var(--collect); color: var(--on-collect); }
+.pill-originality { background: var(--originality); color: var(--on-originality); }
 .pill-curb { background: var(--curb); color: var(--on-curb); }
 .pill-empty { background: transparent; color: var(--muted); border: 1px dashed var(--border); }
 
@@ -148,7 +148,7 @@ button { font: inherit; color: inherit; }
 .scorebar-track { flex: 1; height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .scorebar-fill { display: block; height: 100%; border-radius: 999px; }
 .scorebar-num { font-size: .85rem; min-width: 64px; }
-.bar-collect { background: var(--collect); }
+.bar-originality { background: var(--originality); }
 .bar-curb { background: var(--curb); }
 .bar-overall { background: var(--overall); }
 
