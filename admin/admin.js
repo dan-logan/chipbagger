@@ -149,7 +149,7 @@ function getRating(field) {
 function setPreview(src) {
   const box = $('#photo-preview');
   box.replaceChildren(src ? el('img', { src, alt: 'Bag photo' }) : '🥔');
-  $('#photo-label').textContent = src ? 'Replace photo' : 'Take or choose photo';
+  $('#photo-label').textContent = src ? 'Retake photo' : 'Take photo';
 }
 
 function renderMadeIn() {
@@ -231,7 +231,8 @@ function openEditor(bag) {
   state.photo = null;
   if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
   state.previewUrl = null;
-  $('#photo').value = '';
+  $('#photo-camera').value = '';
+  $('#photo-gallery').value = '';
 
   $('#edit-title').textContent = bag ? `${bag.brand}${bag.flavor ? ` · ${bag.flavor}` : ''}` : 'Add bag';
   $('#f-brand').value = bag ? bag.brand : '';
@@ -463,14 +464,14 @@ async function start() {
     renderMadeIn();
   });
   $('#np-lookup').addEventListener('click', lookupPlace);
-  $('#photo').addEventListener('change', e => {
+  ['#photo-camera', '#photo-gallery'].forEach(sel => $(sel).addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
     state.photo = file;
     if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
     state.previewUrl = URL.createObjectURL(file);
     setPreview(state.previewUrl);
-  });
+  }));
   document.querySelectorAll('.rating').forEach(row => {
     const field = row.dataset.field;
     const input = row.querySelector('input');

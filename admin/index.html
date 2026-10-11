@@ -73,10 +73,16 @@
 
         <div class="photo-field">
           <div id="photo-preview" class="photo-preview"></div>
-          <label class="btn">
-            <span id="photo-label">Take or choose photo</span>
-            <input id="photo" type="file" accept="image/*" class="visually-hidden">
-          </label>
+          <div class="photo-buttons">
+            <label class="btn">
+              <span id="photo-label">Take photo</span>
+              <input id="photo-camera" type="file" accept="image/*" capture="environment" class="visually-hidden">
+            </label>
+            <label class="btn">
+              <span>Choose from gallery</span>
+              <input id="photo-gallery" type="file" accept="image/*" class="visually-hidden">
+            </label>
+          </div>
         </div>
 
         <label class="field">
