@@ -326,7 +326,7 @@
         }, g.place.name),
         el('span', { class: 'muted' }, ` · ${[...new Set(g.bags.map(b => b.brand))].join(', ')} · ${g.bags.length}`)))),
       unknown.length ? el('p', { class: 'muted small' },
-        `Origin unknown for ${unknown.length} bag${unknown.length > 1 ? 's' : ''}: ${[...new Set(unknown.map(b => b.brand))].join(', ')}.`) : null,
+        `Origin unknown for ${unknown.length} bag${unknown.length > 1 ? 's' : ''}: ${[...new Set(unknown.map(b => b.brand))].join(', ')}.`) : '',
     );
   }
 
