@@ -204,7 +204,8 @@ div.thumb { display: grid; place-items: center; font-size: 1rem; }
 .site-footer { padding: 24px 16px 40px; text-align: center; }
 .site-footer a { color: var(--accent-strong); font-weight: 600; }
 
-/* instagram */
+/* social links */
+.social-links { display: flex; gap: 8px; }
 .ig-link {
   display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
   border: 1.5px solid var(--accent); color: var(--accent-strong); font-weight: 700; text-decoration: none; font-size: .92rem;
