@@ -1,0 +1,10 @@
+{
+  "name": "chipbagger-scripts",
+  "private": true,
+  "type": "module",
+  "description": "One-off Firebase admin tasks for Chip Bagger. See README.",
+  "dependencies": {
+    "firebase-admin": "^14.5.0",
+    "sharp": "^0.35.5"
+  }
+}

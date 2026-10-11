@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// Anyone can read active bags. Only accounts with the `admin` custom claim
+// (set with scripts/grant-admin.mjs) can read deleted bags or write.
+// Bags are never hard-deleted: "delete" sets active = false.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function isScore(v) {
+      return v == null || (v is number && v >= 1 && v <= 10);
+    }
+
+    function isText(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    function isValidBag(d) {
+      return d.keys().hasOnly(['brand', 'flavor', 'notes', 'made_in', 'originality', 'curb_appeal',
+                               'photoUrl', 'thumbUrl', 'photoPath', 'thumbPath',
+                               'active', 'createdAt', 'updatedAt', 'deletedAt'])
+        && isText(d.brand, 100) && d.brand.size() > 0
+        && isText(d.flavor, 200)
+        && isText(d.get('notes', ''), 1000)
+        && isText(d.get('made_in', ''), 100)
+        && isScore(d.get('originality', null))
+        && isScore(d.get('curb_appeal', null))
+        && d.active is bool;
+    }
+
+    // Map locations added from /admin. Public read; admin-only writes, never deleted.
+    match /places/{placeId} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'country', 'lat', 'lng'])
+        && isText(request.resource.data.name, 100) && request.resource.data.name.size() > 0
+        && isText(request.resource.data.country, 100)
+        && request.resource.data.lat is number && request.resource.data.lat >= -90 && request.resource.data.lat <= 90
+        && request.resource.data.lng is number && request.resource.data.lng >= -180 && request.resource.data.lng <= 180;
+      allow delete: if false;
+    }
+
+    match /bags/{bagId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update: if isAdmin() && isValidBag(request.resource.data);
+      allow delete: if false;
+    }
+  }
+}
