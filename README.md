@@ -87,6 +87,7 @@ One-time setup:
 3. **Create the Worker.** Cloudflare dashboard → **Workers & Pages** → **Create** → start from "Hello World", name it `chipbagger-images`, **Deploy**. Then **Edit code**, replace everything with `cloudflare/image-proxy.js`, **Deploy**.
 4. **Give it the subdomain.** The Worker → **Settings** → **Domains & Routes** → **Add** → **Custom domain** → `img.chipbagger.fun`. Cloudflare creates the DNS record and certificate.
 5. **Check:** <https://img.chipbagger.fun/thumbs/365-whole-foods-market-rippled-sea-salt.jpg> shows a photo.
+6. **Turn DNSSEC back on (if it was on at GoDaddy, or you want it).** Any time after Cloudflare says the domain is active; it doesn't depend on the Worker. Cloudflare → the domain → **DNS** → **Settings** → **Enable DNSSEC**. It shows a DS record (key tag, algorithm, digest type, digest). In GoDaddy → the domain → **DNS** → **DNSSEC** → add a DS record with those exact values. Cloudflare marks DNSSEC active once it sees it (usually within a day). Never leave a DS record at GoDaddy that Cloudflare didn't give you: a mismatched one makes the whole domain stop resolving.
 
 Until this is done the site simply loads photos straight from Firebase as before. If `storageBucket` in `js/firebase-config.js` ever changes, update `BUCKET` in the Worker and redeploy it. Uploading from /admin still talks to Firebase directly, so turn such blockers off while using it.
 
