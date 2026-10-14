@@ -98,7 +98,8 @@
   function bagImage(bag, cls = '', full = false) {
     const src = full ? bag.photoUrl : bag.thumbUrl || bag.photoUrl;
     if (!src) return el('div', { class: `img-missing ${cls}` }, '🥔');
-    const img = el('img', { src, alt: `${bag.brand} ${bag.flavor} bag`, loading: 'lazy', class: cls });
+    // The detail view is shown at once inside a <dialog>; lazy loading there can leave the image unfetched.
+    const img = el('img', { src, alt: `${bag.brand} ${bag.flavor} bag`, loading: full ? 'eager' : 'lazy', class: cls });
     // A photo may not have a thumbnail yet: fall back to the full image, then to a placeholder.
     img.addEventListener('error', function onError() {
       if (!full && !img.dataset.triedFull && bag.photoUrl && img.src !== bag.photoUrl) { img.dataset.triedFull = '1'; img.src = bag.photoUrl; return; }
