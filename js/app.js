@@ -95,14 +95,26 @@
 
   // ---------- shared pieces ----------
 
+  // Some ad blockers (e.g. Proton VPN's NetShield) block firebasestorage.googleapis.com, so Storage photos are
+  // requested through our own subdomain first (cloudflare/image-proxy.js), then directly if that fails.
+  const IMAGE_PROXY = 'https://img.chipbagger.fun';
+  function imageSources(url) {
+    if (!url) return [];
+    const m = /^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^/]+\/o\/([^?#]+)/.exec(url);
+    if (!m) return [url];
+    const path = decodeURIComponent(m[1]).split('/').map(encodeURIComponent).join('/');
+    return [`${IMAGE_PROXY}/${path}`, url];
+  }
+
   function bagImage(bag, cls = '', full = false) {
-    const src = full ? bag.photoUrl : bag.thumbUrl || bag.photoUrl;
-    if (!src) return el('div', { class: `img-missing ${cls}` }, '🥔');
-    // The detail view is shown at once inside a <dialog>; lazy loading there can leave the image unfetched.
-    const img = el('img', { src, alt: `${bag.brand} ${bag.flavor} bag`, loading: full ? 'eager' : 'lazy', class: cls });
     // A photo may not have a thumbnail yet: fall back to the full image, then to a placeholder.
+    const srcs = full ? imageSources(bag.photoUrl) : [...imageSources(bag.thumbUrl), ...imageSources(bag.photoUrl)];
+    if (!srcs.length) return el('div', { class: `img-missing ${cls}` }, '🥔');
+    // The detail view is shown at once inside a <dialog>; lazy loading there can leave the image unfetched.
+    const img = el('img', { src: srcs[0], alt: `${bag.brand} ${bag.flavor} bag`, loading: full ? 'eager' : 'lazy', class: cls });
+    let tried = 0;
     img.addEventListener('error', function onError() {
-      if (!full && !img.dataset.triedFull && bag.photoUrl && img.src !== bag.photoUrl) { img.dataset.triedFull = '1'; img.src = bag.photoUrl; return; }
+      if (++tried < srcs.length) { img.src = srcs[tried]; return; }
       img.removeEventListener('error', onError);
       img.replaceWith(el('div', { class: `img-missing ${cls}` }, '🥔'));
     });

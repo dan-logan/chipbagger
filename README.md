@@ -76,6 +76,21 @@ Then open `http://localhost:8000/?emulators` and `http://localhost:8000/admin/?e
 
 A bag's location comes from its **Made in** setting (a key from `places` in `origins.json`) if set, otherwise from its brand. The brand locations are each company's home base or main plant, not necessarily the exact plant printed on every bag. Brands with no entry show up under "Origin unknown" on the map page.
 
+## Photo relay on Cloudflare
+
+Some ad blockers (Proton VPN's NetShield, for one) block `firebasestorage.googleapis.com`, which leaves every photo as a potato. The site therefore asks for photos at `https://img.chipbagger.fun/<folder>/<file>` first, a Cloudflare Worker (`cloudflare/image-proxy.js`) that fetches them from Firebase Storage, and falls back to the Firebase URL if that fails. The main site stays on GitHub Pages; only the `img` subdomain goes through Cloudflare. Cost: free up to 100,000 photo requests a day (Workers Free plan); past that, requests fail until 00:00 UTC unless the account is on Workers Paid ($5/month).
+
+One-time setup:
+
+1. **Add the domain to Cloudflare.** Create a free account → **Add a domain** → `chipbagger.fun` → Free plan. Cloudflare imports the current DNS records: compare them with GoDaddy's DNS page and add anything missing (MX/TXT for email especially). Set **every** imported record to **DNS only** (grey cloud), so GitHub Pages keeps serving the site and its certificate exactly as before.
+2. **Switch nameservers at GoDaddy.** If DNSSEC is on in GoDaddy, turn it off first. Then Domain → **Nameservers** → **Change nameservers** → "I'll use my own nameservers" → enter the two Cloudflare gives you. Cloudflare emails when the domain is active (minutes to a few hours). The domain stays registered at GoDaddy.
+3. **Create the Worker.** Cloudflare dashboard → **Workers & Pages** → **Create application** → **Start with Hello World!** (a Worker, not Pages; don't import the repository), name it `chipbagger-images`, **Deploy**. Then **Edit code**, replace everything with `cloudflare/image-proxy.js`, **Deploy**.
+4. **Give it the subdomain.** The Worker → **Settings** → **Domains & Routes** → **Add** → **Custom domain** → `img.chipbagger.fun`. Cloudflare creates the DNS record and certificate.
+5. **Check:** <https://img.chipbagger.fun/thumbs/365-whole-foods-market-rippled-sea-salt.jpg> shows a photo.
+6. **Turn DNSSEC back on (if it was on at GoDaddy, or you want it).** Any time after Cloudflare says the domain is active; it doesn't depend on the Worker. Cloudflare → the domain → **DNS** → **Settings** → **Enable DNSSEC**. It shows a DS record (key tag, algorithm, digest type, digest). In GoDaddy → the domain → **DNS** → **DNSSEC** → add a DS record with those exact values. Cloudflare marks DNSSEC active once it sees it (usually within a day). Never leave a DS record at GoDaddy that Cloudflare didn't give you: a mismatched one makes the whole domain stop resolving.
+
+Until this is done the site simply loads photos straight from Firebase as before. If `storageBucket` in `js/firebase-config.js` ever changes, update `BUCKET` in the Worker and redeploy it. Uploading from /admin still talks to Firebase directly, so turn such blockers off while using it.
+
 ## Credits
 
 Colors and logo (`images/brand/logo.svg`, and `images/brand/og-image.png` for link previews) follow the @chip.bagger Instagram logo: navy `#334788`, orange `#f4a641`. They're set as variables at the top of `css/style.css`.
