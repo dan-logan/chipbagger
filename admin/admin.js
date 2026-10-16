@@ -55,7 +55,12 @@ function flash(message, isError = false) {
 function fail(err, what) {
   console.error(err);
   const denied = err && (err.code === 'permission-denied' || err.code === 'storage/unauthorized');
-  flash(`${what} failed: ${denied ? 'permission denied.' : err.message || err}`, true);
+  // Storage gives up with retry-limit-exceeded when it can't reach firebasestorage.googleapis.com at all.
+  const unreachable = err && err.code === 'storage/retry-limit-exceeded';
+  const reason = denied ? 'permission denied.'
+    : unreachable ? "couldn't reach Firebase Storage. A VPN or ad blocker (e.g. Proton NetShield) may be blocking firebasestorage.googleapis.com."
+    : err.message || err;
+  flash(`${what} failed: ${reason}`, true);
 }
 
 // ---------- data ----------
@@ -435,6 +440,9 @@ async function start() {
   ]);
   const app = initializeApp(appConfig);
   fb = { auth, fs, st, authInstance: auth.getAuth(app), db: fs.getFirestore(app), storage: st.getStorage(app), isAdmin: false };
+  // The SDK retries for up to 10 minutes by default, which looks like a hang when Storage is blocked.
+  fb.storage.maxUploadRetryTime = 30 * 1000;
+  fb.storage.maxOperationRetryTime = 30 * 1000;
   if (useEmulators) {
     auth.connectAuthEmulator(fb.authInstance, 'http://127.0.0.1:9099', { disableWarnings: true });
     fs.connectFirestoreEmulator(fb.db, '127.0.0.1', 8080);
