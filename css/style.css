@@ -193,6 +193,7 @@ div.thumb { display: grid; place-items: center; font-size: 1rem; }
 /* map */
 .chip-map { height: min(62vh, 560px); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface-2); z-index: 0; }
 .place-list { margin: 20px 0 40px; }
+.continent { font-size: 1rem; margin: 14px 0 6px; }
 .places { columns: 2 280px; padding-left: 18px; margin: 0 0 12px; }
 .places li { break-inside: avoid; margin-bottom: 4px; }
 .popup strong { font-size: 1rem; }

@@ -318,29 +318,97 @@
       drawBaseMap(state.map);
       const max = Math.max(...groups.map(g => g.bags.length));
       const pin = mapColors();
+      // Largest first, so smaller dots sit on top and win taps where they overlap.
       groups.forEach(g => {
         const r = 6 + 16 * Math.sqrt(g.bags.length / max);
-        const marker = L.circleMarker([g.place.lat, g.place.lng], {
-          radius: r, color: pin.pinStroke, weight: 3, fillColor: pin.pinFill, fillOpacity: 0.95,
+        const ll = [g.place.lat, g.place.lng];
+        // Small dots are too small to tap on a phone, so each dot gets an invisible
+        // hit circle at least MIN_HIT_RADIUS px that carries the tooltip and popup.
+        const hit = L.circleMarker(ll, {
+          radius: Math.max(r, MIN_HIT_RADIUS), stroke: false, fillColor: pin.pinFill, fillOpacity: 0,
         }).addTo(state.map);
-        marker.bindTooltip(`${g.place.name}: ${g.bags.length} bag${g.bags.length > 1 ? 's' : ''}`);
-        marker.bindPopup(() => popupFor(g), { maxWidth: 320, minWidth: 240 });
+        L.circleMarker(ll, {
+          radius: r, color: pin.pinStroke, weight: 3, fillColor: pin.pinFill, fillOpacity: 0.95, interactive: false,
+        }).addTo(state.map);
+        hit.bindTooltip(`${g.place.name}: ${g.bags.length} bag${g.bags.length > 1 ? 's' : ''}`);
+        hit.bindPopup(() => popupFor(g), { maxWidth: 320, minWidth: 240 });
       });
       const bounds = L.latLngBounds(groups.map(g => [g.place.lat, g.place.lng]));
       if (bounds.isValid()) state.map.fitBounds(bounds.pad(0.15));
     }
 
+    const sorted = groups.map(g => ({ g, k: placeSortKey(g.place) }))
+      .sort((a, b) => compareKeys(a.k, b.k));
+    const byContinent = [];
+    sorted.forEach(({ g, k }) => {
+      const last = byContinent[byContinent.length - 1];
+      if (last && last.continent === k[0]) last.groups.push(g);
+      else byContinent.push({ continent: k[0], groups: [g] });
+    });
+
     $('#place-list').replaceChildren(
       el('h2', {}, 'Places'),
-      el('ul', { class: 'places' }, ...groups.map(g => el('li', {},
+      ...byContinent.map(c => el('section', {},
+        el('h3', { class: 'continent' }, c.continent),
+        el('ul', { class: 'places' }, ...c.groups.map(g => el('li', {},
         el('button', {
           class: 'link', type: 'button',
           onclick: () => { if (state.map) { state.map.setView([g.place.lat, g.place.lng], 6); state.map.getContainer().scrollIntoView({ behavior: 'smooth', block: 'center' }); } },
         }, g.place.name),
-        el('span', { class: 'muted' }, ` · ${[...new Set(g.bags.map(b => b.brand))].join(', ')} · ${g.bags.length}`)))),
+        el('span', { class: 'muted' }, ` · ${[...new Set(g.bags.map(b => b.brand))].join(', ')} · ${g.bags.length}`)))))),
       unknown.length ? el('p', { class: 'muted small' },
         `Origin unknown for ${unknown.length} bag${unknown.length > 1 ? 's' : ''}: ${[...new Set(unknown.map(b => b.brand))].join(', ')}.`) : '',
     );
+  }
+
+  const MIN_HIT_RADIUS = 18;
+
+  const CONTINENTS = {
+    'North America': ['USA', 'United States', 'Canada', 'Mexico', 'Guatemala', 'Belize', 'Honduras', 'El Salvador',
+      'Nicaragua', 'Costa Rica', 'Panama', 'Cuba', 'Jamaica', 'Haiti', 'Dominican Republic', 'Puerto Rico', 'Bahamas',
+      'Trinidad and Tobago', 'Barbados'],
+    'South America': ['Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Ecuador', 'Guyana', 'Paraguay', 'Peru',
+      'Suriname', 'Uruguay', 'Venezuela'],
+    'Europe': ['United Kingdom', 'Ireland', 'France', 'Spain', 'Portugal', 'Germany', 'Italy', 'Netherlands', 'Belgium',
+      'Luxembourg', 'Switzerland', 'Austria', 'Denmark', 'Norway', 'Sweden', 'Finland', 'Iceland', 'Poland', 'Czechia',
+      'Czech Republic', 'Slovakia', 'Hungary', 'Romania', 'Bulgaria', 'Greece', 'Croatia', 'Slovenia', 'Serbia',
+      'Bosnia and Herzegovina', 'Montenegro', 'North Macedonia', 'Albania', 'Estonia', 'Latvia', 'Lithuania', 'Ukraine',
+      'Belarus', 'Moldova', 'Russia', 'Malta', 'Cyprus', 'Monaco', 'Andorra', 'San Marino', 'Liechtenstein'],
+    'Asia': ['China', 'Taiwan', 'Japan', 'South Korea', 'North Korea', 'Mongolia', 'Hong Kong', 'Macau', 'Philippines',
+      'Vietnam', 'Thailand', 'Cambodia', 'Laos', 'Myanmar', 'Malaysia', 'Singapore', 'Indonesia', 'Brunei',
+      'Timor-Leste', 'India', 'Pakistan', 'Bangladesh', 'Sri Lanka', 'Nepal', 'Bhutan', 'Maldives', 'Afghanistan',
+      'Kazakhstan', 'Uzbekistan', 'Turkmenistan', 'Kyrgyzstan', 'Tajikistan', 'Iran', 'Iraq', 'Syria', 'Lebanon',
+      'Jordan', 'Israel', 'Palestine', 'Saudi Arabia', 'Yemen', 'Oman', 'United Arab Emirates', 'Qatar', 'Bahrain',
+      'Kuwait', 'Turkey', 'Türkiye', 'Georgia', 'Armenia', 'Azerbaijan'],
+    'Africa': ['Egypt', 'Libya', 'Tunisia', 'Algeria', 'Morocco', 'Sudan', 'Ethiopia', 'Kenya', 'Tanzania', 'Uganda',
+      'Rwanda', 'Nigeria', 'Ghana', 'Senegal', "Côte d'Ivoire", 'Ivory Coast', 'Cameroon', 'South Africa', 'Namibia',
+      'Botswana', 'Zimbabwe', 'Zambia', 'Mozambique', 'Madagascar', 'Mauritius', 'Angola'],
+    'Oceania': ['Australia', 'New Zealand', 'Fiji', 'Papua New Guinea', 'Samoa', 'Tonga'],
+  };
+  const CONTINENT_OF = {};
+  Object.entries(CONTINENTS).forEach(([c, list]) => list.forEach(n => { CONTINENT_OF[n.toLowerCase()] = c; }));
+
+  // [continent, country, state/province, city] parsed from a place's "City, Region, Country" name.
+  function placeSortKey(place) {
+    const country = place.country || '';
+    const continent = CONTINENT_OF[country.toLowerCase()] || 'Other';
+    const parts = place.name.replace(/\s*\([^)]*\)/g, '').split(',').map(x => x.trim()).filter(Boolean);
+    const isCountry = x => x.toLowerCase() === country.toLowerCase() || CONTINENT_OF[x.toLowerCase()];
+    if (parts.length > 1 && isCountry(parts[parts.length - 1])) parts.pop();
+    if (parts.length === 1 && isCountry(parts[0])) parts.pop();
+    const city = parts.length ? parts[0] : '';
+    const region = parts.slice(1).join(', ');
+    return [continent, country, region, city];
+  }
+
+  function compareKeys(a, b) {
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] === b[i]) continue;
+      if (i === 0 && (a[i] === 'Other' || b[i] === 'Other')) return a[i] === 'Other' ? 1 : -1;
+      const c = a[i].localeCompare(b[i], undefined, { sensitivity: 'base' });
+      if (c) return c;
+    }
+    return 0;
   }
 
   function mapColors() {
